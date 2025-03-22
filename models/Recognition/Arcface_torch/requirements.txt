@@ -1,0 +1,11 @@
+tensorboard
+easydict
+mxnet
+scikit-learn
+opencv-python
+torch
+torchvision
+torchaudio
+tqdm
+Pillow
+

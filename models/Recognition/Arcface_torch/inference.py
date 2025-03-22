@@ -6,6 +6,7 @@ import torch
 
 from backbones import get_model
 
+device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
 @torch.no_grad()
 def inference(weight, name, img):
@@ -20,10 +21,11 @@ def inference(weight, name, img):
     img = torch.from_numpy(img).unsqueeze(0).float()
     img.div_(255).sub_(0.5).div_(0.5)
     net = get_model(name, fp16=False)
-    net.load_state_dict(torch.load(weight))
+    net.load_state_dict(torch.load(weight,  map_location=device))
     net.eval()
     feat = net(img).numpy()
     print(feat)
+
 
 
 if __name__ == "__main__":
