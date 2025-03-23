@@ -35,3 +35,5 @@ if __name__ == "__main__":
     parser.add_argument('--img', type=str, default=None)
     args = parser.parse_args()
     inference(args.weight, args.network, args.img)
+
+
