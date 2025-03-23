@@ -1,6 +1,5 @@
 tensorboard
 easydict
-mxnet
 scikit-learn
 opencv-python
 torch
