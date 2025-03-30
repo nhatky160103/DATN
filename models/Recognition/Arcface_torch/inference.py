@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import torch
 
-from backbones import get_model
+from models.Recognition.Arcface_torch.backbones import get_model
 
 device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
@@ -29,11 +29,19 @@ def inference(weight, name, img):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='PyTorch ArcFace Training')
-    parser.add_argument('--network', type=str, default='r50', help='backbone network')
-    parser.add_argument('--weight', type=str, default='')
-    parser.add_argument('--img', type=str, default=None)
-    args = parser.parse_args()
-    inference(args.weight, args.network, args.img)
+    # parser = argparse.ArgumentParser(description='PyTorch ArcFace Training')
+    # parser.add_argument('--network', type=str, default='r50', help='backbone network')
+    # parser.add_argument('--weight', type=str, default='')
+    # parser.add_argument('--img', type=str, default=None)
+    # args = parser.parse_args()
+    # inference(args.weight, args.network, args.img)
+
+    net = get_model("r100", fp16=False)
+    net.load_state_dict(torch.load("models/Recognition/Arcface_torch/weights/glint360k_cosface_r100_fp16_0.1/backbone.pth",  map_location=device))
+    net.eval()
+    img  = torch.rand(16, 3, 112, 112)
+    img.to(device)
+    feat = net(img).detach().numpy()
+    print(feat.shape)
 
 
