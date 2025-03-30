@@ -6,6 +6,7 @@ __pycache__/
 *.swp
 
 weights/
+pretrained/
 retinaface-R50/
 checkpoints/
 *.h5
@@ -20,3 +21,4 @@ logs/
 
 datasets/
 dataset/
+data/

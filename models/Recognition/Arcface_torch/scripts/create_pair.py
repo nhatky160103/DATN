@@ -70,6 +70,8 @@ def main():
         print(f"Cảnh báo: Chỉ tìm thấy {len(people)} người, ít hơn 100 như yêu cầu.")
 
     # Tạo file pairs.txt
+
+    output_file = os.path.join(dataset_path, output_file)
     with open(output_file, "w") as f:
         # Ghi dòng đầu tiên
         f.write(f"{num_folds}\t{pairs_per_fold}\n")
@@ -88,14 +90,11 @@ def main():
 
     print(f"Đã tạo file {output_file} thành công!")
 
-if __name__ == "__main__":
-    # main()
 
-    for folder in os.listdir("dataset/VN-celeb"):
-        if not os.path.isdir(os.path.join("dataset/VN-celeb", folder)):
-            continue
-        for image_name in os.listdir(os.path.join("dataset/VN-celeb", folder)):
-            new_name = image_name.replace(".png ", ".jpeg")
+if __name__ == "__main__":
+    main()
+
+
 
 
         
