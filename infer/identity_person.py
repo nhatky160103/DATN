@@ -1,19 +1,20 @@
 
 import torch
 import os
-from .infer_image import infer, get_align
-from torch.nn.modules.distance import PairwiseDistance
 import cv2
 from PIL import Image
-from .get_embedding import load_embeddings_and_names
-from .getface import yolo
+from torch.nn.modules.distance import PairwiseDistance
 import torch.nn.functional as F
-from collections import Counter
+from collections import Counter, defaultdict
 import numpy as np
-from models.spoofing.FasNet import Fasnet
-from .utils import get_model
-from collections import defaultdict
 import yaml
+
+
+from models.Anti_spoof.FasNet import Fasnet
+from .utils import get_recogn_model
+# from .infer_image import GetFace, transform_image, GetEmbedding
+from .get_embedding import load_embeddings_and_names
+
 
 # use config file
 with open('config.yaml', 'r') as file:
@@ -21,7 +22,7 @@ with open('config.yaml', 'r') as file:
 
 # define distance calculator, device and anti-spoof model
 l2_distance = PairwiseDistance(p=2)
-device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 antispoof_model = Fasnet()
 
 
@@ -90,7 +91,6 @@ def find_closest_person(
     
     return -1
  
-
 
 def find_closest_person_vote(
         pred_embed, 
@@ -164,25 +164,54 @@ def find_closest_person_vote(
     
 
 if __name__ == '__main__':
+    # import matplotlib.pyplot as plt
+    # embedding_file_path= 'data/data_source/glint360k_cosface_embeddings.npy'
+    # image2class_file_path = 'data/data_source/glint360k_cosface_image2class.pkl'
+    # index2class_file_path = 'data/data_source/glint360k_cosface_index2class.pkl'
 
-    recogn_model_name= 'inceptionresnetV1'
+    # embeddings, image2class, index2class = load_embeddings_and_names(embedding_file_path, image2class_file_path, index2class_file_path)
     
-    embedding_file_path= 'data/data_source/db1/inceptionresnetV1_embeddings.npy'
-    image2class_file_path = 'data/data_source/db1/inceptionresnetV1_image2class.pkl'
-    index2class_file_path = 'data/data_source/db1/inceptionresnetV1_index2class.pkl'
+    # keep_all_mode = False
+    # det_model = GetFace(keep_all = keep_all_mode)
+    # arcface_model = get_recogn_model()
+    # rec_model = GetEmbedding(model= arcface_model, transform= transform_image, device=device, keep_all= keep_all_mode)
 
-    embeddings, image2class, index2class = load_embeddings_and_names(embedding_file_path, image2class_file_path, index2class_file_path)
-
-
-    recogn_model = get_model(recogn_model_name)
   
-    test_folder = 'data/data_gallery_1/Chi Hoa'
-    for i in os.listdir(test_folder):
-        image_path = os.path.join(test_folder, i)
-        print(image_path)
-        image = Image.open(image_path).convert('RGB')
-        align_image, faces, probs, lanmark  = get_align(image)
-        pred_embed= infer(recogn_model, align_image)
-        result = find_closest_person(pred_embed, embeddings, image2class)
-        print(result)
- 
+    
+    # folder = "data/Testset/sontung"
+    # for file in os.listdir(folder):
+    #     image_path = os.path.join(folder, file)
+    #     image = Image.open(image_path).convert('RGB')
+    #     align_image, faces, probs, lanmark  = det_model(image)
+    #     plt.imshow(align_image.permute(1, 2, 0).cpu().numpy())
+    #     plt.show()
+
+    # pred_embed= rec_model(align_image)
+    # print(pred_embed.shape)
+    # result = find_closest_person(pred_embed, embeddings, image2class)
+    # print(result)
+
+
+    import timeit
+
+    def process(data, func):
+        return [func(x) for x in data]  # Áp dụng func lên từng phần tử của danh sách
+
+    def square(x):
+        return x * x
+
+    def process_fixed(data):
+        return [square(x) for x in data]  # Gọi trực tiếp square thay vì truyền vào
+
+    # Danh sách lớn để kiểm tra tốc độ
+    data = list(range(10000))
+
+    # So sánh tốc độ với 10 triệu lần lặp
+    time_direct = timeit.timeit(lambda: process(data, square), number=10**5)
+    time_fixed = timeit.timeit(lambda: process_fixed(data), number=10**5)
+
+    print(f"Truyền hàm trực tiếp: {time_direct:.6f} sec")
+    print(f"Gọi hàm từ file: {time_fixed:.6f} sec")
+
+
+
