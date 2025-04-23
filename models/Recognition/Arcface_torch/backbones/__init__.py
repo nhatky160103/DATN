@@ -1,5 +1,6 @@
 from .iresnet import iresnet18, iresnet34, iresnet50, iresnet100, iresnet200
-from .mobilefacenet import get_mbf
+from .iresnet_plus import iresnet18_plus, iresnet34_plus, iresnet50_plus, iresnet100_plus
+from .iresnet_se import iresnet50_se
 
 
 def get_model(name, **kwargs):
@@ -14,79 +15,16 @@ def get_model(name, **kwargs):
         return iresnet100(False, **kwargs)
     elif name == "r200":
         return iresnet200(False, **kwargs)
-    elif name == "r2060":
-        from .iresnet2060 import iresnet2060
-        return iresnet2060(False, **kwargs)
-
-    elif name == "mbf":
-        fp16 = kwargs.get("fp16", False)
-        num_features = kwargs.get("num_features", 512)
-        return get_mbf(fp16=fp16, num_features=num_features)
-
-    elif name == "mbf_large":
-        from .mobilefacenet import get_mbf_large
-        fp16 = kwargs.get("fp16", False)
-        num_features = kwargs.get("num_features", 512)
-        return get_mbf_large(fp16=fp16, num_features=num_features)
-
-    elif name == "vit_t":
-        num_features = kwargs.get("num_features", 512)
-        from .vit import VisionTransformer
-        return VisionTransformer(
-            img_size=112, patch_size=9, num_classes=num_features, embed_dim=256, depth=12,
-            num_heads=8, drop_path_rate=0.1, norm_layer="ln", mask_ratio=0.1)
-
-    elif name == "vit_t_dp005_mask0": # For WebFace42M
-        num_features = kwargs.get("num_features", 512)
-        from .vit import VisionTransformer
-        return VisionTransformer(
-            img_size=112, patch_size=9, num_classes=num_features, embed_dim=256, depth=12,
-            num_heads=8, drop_path_rate=0.05, norm_layer="ln", mask_ratio=0.0)
-
-    elif name == "vit_s":
-        num_features = kwargs.get("num_features", 512)
-        from .vit import VisionTransformer
-        return VisionTransformer(
-            img_size=112, patch_size=9, num_classes=num_features, embed_dim=512, depth=12,
-            num_heads=8, drop_path_rate=0.1, norm_layer="ln", mask_ratio=0.1)
-    
-    elif name == "vit_s_dp005_mask_0":  # For WebFace42M
-        num_features = kwargs.get("num_features", 512)
-        from .vit import VisionTransformer
-        return VisionTransformer(
-            img_size=112, patch_size=9, num_classes=num_features, embed_dim=512, depth=12,
-            num_heads=8, drop_path_rate=0.05, norm_layer="ln", mask_ratio=0.0)
-    
-    elif name == "vit_b":
-        # this is a feature
-        num_features = kwargs.get("num_features", 512)
-        from .vit import VisionTransformer
-        return VisionTransformer(
-            img_size=112, patch_size=9, num_classes=num_features, embed_dim=512, depth=24,
-            num_heads=8, drop_path_rate=0.1, norm_layer="ln", mask_ratio=0.1, using_checkpoint=True)
-
-    elif name == "vit_b_dp005_mask_005":  # For WebFace42M
-        # this is a feature
-        num_features = kwargs.get("num_features", 512)
-        from .vit import VisionTransformer
-        return VisionTransformer(
-            img_size=112, patch_size=9, num_classes=num_features, embed_dim=512, depth=24,
-            num_heads=8, drop_path_rate=0.05, norm_layer="ln", mask_ratio=0.05, using_checkpoint=True)
-
-    elif name == "vit_l_dp005_mask_005":  # For WebFace42M
-        # this is a feature
-        num_features = kwargs.get("num_features", 512)
-        from .vit import VisionTransformer
-        return VisionTransformer(
-            img_size=112, patch_size=9, num_classes=num_features, embed_dim=768, depth=24,
-            num_heads=8, drop_path_rate=0.05, norm_layer="ln", mask_ratio=0.05, using_checkpoint=True)
-        
-    elif name == "vit_h":  # For WebFace42M
-        num_features = kwargs.get("num_features", 512)
-        from .vit import VisionTransformer
-        return VisionTransformer(
-            img_size=112, patch_size=9, num_classes=num_features, embed_dim=1024, depth=48,
-            num_heads=8, drop_path_rate=0.1, norm_layer="ln", mask_ratio=0, using_checkpoint=True)
-
+ 
+    elif name == "r18_plus":
+         return iresnet18_plus()
+    elif name == "r34_plus":
+         return iresnet34_plus()
+    elif name == "r50_plus":
+         return iresnet50_plus()
+    elif name == "r100_plus":
+         return iresnet100_plus()
+    elif name == "r50_se":
+        return iresnet50_se(False, **kwargs)
     else:
         raise ValueError()
