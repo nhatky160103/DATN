@@ -1,0 +1,282 @@
+/* Font và layout chính */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #dbeafe, #f0f9ff);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Khung chính */
+.main-page {
+    background: #ffffff;
+    padding: 40px 30px;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    animation: fadeIn 0.8s ease-out;
+    transition: transform 0.3s ease;
+}
+
+/* Tiêu đề welcome */
+.welcome-title {
+    font-size: 30px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #4a90e2, #2ecc71);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 30px;
+    animation: slideDown 1s ease-out;
+}
+
+/* Thông tin */
+.info-box {
+    margin-bottom: 25px;
+    background-color: #f0f4f8;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.03);
+    font-size: 18px;
+    transition: all 0.3s ease;
+}
+
+.info-box:hover {
+    box-shadow: 0 0 15px rgba(74, 144, 226, 0.25);
+    transform: scale(1.02);
+}
+
+.info-box p {
+    margin: 10px 0;
+    color: #333;
+}
+
+/* Khu điều khiển */
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    animation: fadeIn 1.2s ease;
+}
+
+/* Nút chung */
+button {
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    position: relative;
+    z-index: 1;
+}
+
+button:hover {
+    background-color: #357ab8;
+    transform: scale(1.07);
+    box-shadow: 0 10px 20px rgba(53, 122, 184, 0.3);
+}
+
+/* Nút dashboard riêng */
+a button {
+    background-color: #2ecc71;
+}
+
+a button:hover {
+    background-color: #27ae60;
+    box-shadow: 0 10px 20px rgba(39, 174, 96, 0.3);
+}
+
+/* Select bucket */
+select {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    outline: none;
+    background-color: #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+select:hover,
+select:focus {
+    box-shadow: 0 0 12px rgba(74, 144, 226, 0.3);
+    transform: scale(1.03);
+    border-color: #4a90e2;
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .main-page {
+        padding: 25px 20px;
+    }
+
+    .welcome-title {
+        font-size: 24px;
+    }
+
+    .controls {
+        gap: 12px;
+    }
+}
+
+
+body {
+    background: #e3e9f7;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.main-page {
+    text-align: center;
+    padding-top: 3rem;
+}
+
+button {
+    padding: 12px 20px;
+    font-size: 18px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #007cf0, #00dfd8);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 223, 216, 0.3);
+}
+
+
+
+
+.camera-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px) saturate(180%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s ease-in-out;
+}
+
+.camera-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Khung camera đẹp, glow + sáng */
+.camera-content {
+    position: relative;
+    background: linear-gradient(145deg, #e0e0e0, #fdfdfd);
+    padding: 1.5rem;
+    border-radius: 20px;
+    max-width: 720px;
+    width: 90%;
+    box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.15),
+        0 0 15px rgba(0, 170, 255, 0.3);
+    transform: scale(0.9);
+    animation: popupIn 0.5s ease forwards;
+    border: 1px solid rgba(0, 170, 255, 0.2);
+    display: flex;               /* Thêm để căn giữa nội dung */
+    justify-content: center;     /* Căn giữa nội dung theo chiều ngang */
+    align-items: center;         /* Căn giữa nội dung theo chiều dọc */
+}
+
+/* Animation scale-in */
+@keyframes popupIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* Video có viền sáng + shadow + bo góc */
+video {
+    width: 100%;                 /* Đảm bảo video luôn đầy khung */
+    max-height: 80vh;            /* Hạn chế chiều cao video để không bị vỡ */
+    border-radius: 16px;
+    border: 4px solid rgba(0, 170, 255, 0.4);
+    box-shadow:
+        0 0 8px rgba(0, 170, 255, 0.6),
+        0 15px 30px rgba(0, 0, 0, 0.3);
+    display: block;              /* Hiển thị video dạng block */
+    object-fit: contain;         /* Giữ tỷ lệ video, tránh méo */
+}
+
+/* Spinner loading fancy */
+.spinner {
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top: 5px solid #00bcd4;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 50px auto;
+    box-shadow: 0 0 15px rgba(0, 188, 212, 0.4);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Nút đóng: giữa top + chuyển hiệu ứng đẹp */
+.close-btn {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffffff;
+    color: #111;
+    font-weight: bold;
+    border: none;
+    padding: 6px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease, background-color 0.2s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Hover effect chuyên nghiệp */
+.close-btn:hover {
+    background: linear-gradient(to right, #ff416c, #ff4b2b);
+    color: white;
+    transform: translateX(-50%) scale(1.05);
+    box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5);
+}

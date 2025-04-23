@@ -36,8 +36,9 @@ def getFace(dec_model=None, image=None, keep_all=False):
 
     faces, probs, landmarks = dec_model.detect(image, landmarks=True)
 
-    if len(faces) == 0: 
-        return image, None, 0, None  
+    if faces is None: 
+        resized_image = cv2.resize(image, (112, 112))
+        return resized_image, None, 0, None  
 
     if keep_all:
         return dec_model(image), faces, probs, landmarks 
@@ -46,7 +47,17 @@ def getFace(dec_model=None, image=None, keep_all=False):
     return dec_model(image), face, prob, landmark
         
 
-def getEmbedding(rec_model, transform, image, keep_all=False, device: str = 'cpu'):
+
+def transform_image(img, keep_all=False):
+    if not isinstance(img, torch.Tensor):
+        img = transforms.ToTensor()(img)
+    if not keep_all:
+        img = img.unsqueeze(0) 
+    return img
+
+
+
+def getEmbedding(rec_model= None, image = None, transform = transform_image, keep_all=False, device: str = 'cpu'):
 
     image = transform(image, keep_all)
     image = image.to(device)
@@ -56,56 +67,5 @@ def getEmbedding(rec_model, transform, image, keep_all=False, device: str = 'cpu
     return embedding
 
 
-def transform_image(img, keep_all=False):
-    transform = transforms.Compose([
-        transforms.Resize((112, 112)),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    ])
-
-    img_batch = transform(img) 
-    if not keep_all:
-        img_batch = img_batch.unsqueeze(0) 
-    return img_batch
-
-
-
-if __name__ == "__main__":
-    
-    keep_all_mode = False
-    if keep_all_mode:
-        mtcnn = mtcnn_keep_all
-    else:
-        mtcnn = mtcnn
-    arcface_model = get_recogn_model()
-    image = Image.open('data/Testset/thaotam/019.jpg').convert('RGB')
-
-    input_image, face, prob, landmark = getFace(mtcnn, image, keep_all=keep_all_mode)
- 
-    print("input_image:")
-    print(input_image.shape)
-    print("face:")
-    print(face)
-    print("prob:")
-    print(prob)
-    print("landmark:")
-    print(landmark)
-
-    embedding =  getEmbedding(arcface_model,  transform_image, input_image, keep_all=keep_all_mode, device=device)                                          
-    print(embedding.shape)
-
-    image = np.array(image)
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-    x1, y1, x2, y2 = map(int, face)
-    cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
-    cv2.putText(image, f"Face {prob:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-    for (x, y) in landmark:
-        cv2.circle(image, (int(x), int(y)), 4, (0, 0, 255), -1)
-
-    cv2.imshow('image', image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
     

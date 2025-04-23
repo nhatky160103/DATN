@@ -4,6 +4,9 @@ __pycache__/
 *.pyo
 *.pyd
 *.swp
+.env
+database/ServiceAccountKey.json
+
 
 weights/
 pretrained/
@@ -14,7 +17,14 @@ checkpoints/
 *.onnx
 *.tflite
 *.pb
-
+*.npy
+*.csv
+*.zip
+*.tar.gz
+*.tar
+*.json
+*.pickle
+*.pkl
 
 logs/
 *.log
@@ -22,3 +32,5 @@ logs/
 datasets/
 dataset/
 data/
+local_embeddings/
+

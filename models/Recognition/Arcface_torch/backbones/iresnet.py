@@ -164,6 +164,7 @@ class IResNet(nn.Module):
         return x
 
 
+
 def _iresnet(arch, block, layers, pretrained, progress, **kwargs):
     model = IResNet(block, layers, **kwargs)
     if pretrained:
@@ -194,3 +195,21 @@ def iresnet100(pretrained=False, progress=True, **kwargs):
 def iresnet200(pretrained=False, progress=True, **kwargs):
     return _iresnet('iresnet200', IBasicBlock, [6, 26, 60, 6], pretrained,
                     progress, **kwargs)
+
+
+if __name__ == "__main__":
+    import cv2
+    model = iresnet34()
+    x = cv2.imread("data/img1.jpg")
+    x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB)
+    x = cv2.resize(x, (112, 112))
+    x = x.transpose(2, 0, 1)  # [H,W,C] -> [C,H,W]
+    x = torch.from_numpy(x).float()  # [C,H,W]
+    x = x.unsqueeze(0)  # [C,H,W] -> [1,C,H,W]
+    model.eval()
+    with torch.no_grad():
+        y = model(x)
+        print(y.shape)  # [1, 512]
+        print("Norm:", torch.norm(y, p=2, dim=1).item())
+
+        

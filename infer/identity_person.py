@@ -12,8 +12,7 @@ import yaml
 
 from models.Anti_spoof.FasNet import Fasnet
 from .utils import get_recogn_model
-# from .infer_image import GetFace, transform_image, GetEmbedding
-from .get_embedding import load_embeddings_and_names
+from .infer_image import getFace, mtcnn, mtcnn_keep_all, getEmbedding, transform_image
 
 
 # use config file
@@ -24,7 +23,6 @@ with open('config.yaml', 'r') as file:
 l2_distance = PairwiseDistance(p=2)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 antispoof_model = Fasnet()
-
 
 
 def find_closest_person(
@@ -79,7 +77,7 @@ def find_closest_person(
     np.add.at(counts, image2class_np, 1)
 
     avg_distances = np.divide(total_distances, counts, out=np.full_like(total_distances, np.inf), where=counts > 0)
-
+    print(avg_distances)
     if distance_mode == 'l2': # l2
         best_class = np.argmin(avg_distances) 
         if avg_distances[best_class] < l2_threshold:
@@ -92,126 +90,30 @@ def find_closest_person(
     return -1
  
 
-def find_closest_person_vote(
-        pred_embed, 
-        embeddings, 
-        image2class, 
-        distance_mode= config['distance_mode'], 
-        k=config['k'], 
-        vote_threshold = config['vote_threshold'], 
-        l2_threshold= config['l2_threshold'], 
-        cosine_threshold= config['cosine_threshold'] ):
-    '''
-      Finds the closest matching class (person) for a given embedding using k-nearest neighbor voting.
-
-    Parameters:
-    ----------
-    pred_embed : torch.Tensor
-        The embedding of the query image.
-    embeddings : numpy.ndarray
-        Precomputed embeddings of the dataset.
-    image2class : dict
-        Maps image indices to class labels.
-    distance_mode : str, optional
-        Metric for comparison ('l2' for Euclidean, 'cosine' for cosine similarity).
-    k : int, optional
-        Number of nearest neighbors to consider for voting.
-    vote_threshold : float, optional
-        Minimum proportion of votes required for a class to be accepted.
-    l2_threshold : float, optional
-        Max allowable L2 distance for valid neighbors.
-    cosine_threshold : float, optional
-        Max allowable cosine distance (1 - similarity) for valid neighbors.
-
-    Returns:
-    -------
-    best_class_index : int
-        Class label of the closest match if it meets the vote threshold, or -1 if no match meets the criteria.
-
-    Process:
-    -------
-    1. Computes distances or cosine similarities between `pred_embed` and dataset embeddings.
-    2. Filters out neighbors exceeding the specified threshold (L2 or cosine).
-    3. Selects the `k` nearest neighbors and their corresponding classes.
-    4. Counts votes for each class and identifies the most common class.
-    5. Returns the class if it meets the vote threshold; otherwise, returns -1.
-
-    '''
-
-    embeddings_tensor = torch.tensor(embeddings, dtype=torch.float32)
-    if distance_mode == 'l2':
-        distances = torch.norm(embeddings_tensor - pred_embed, dim=1).detach().cpu().numpy()
-        for distance in np.sort(distances)[:k]:
-            if distance > l2_threshold:
-                return -1
-    else:
-        similarities = F.cosine_similarity(pred_embed, embeddings_tensor)
-        distances = (1 - similarities).detach().cpu().numpy() 
-        for distance in  np.sort(distances)[:k]:
-            if distance > cosine_threshold:
-                return -1
-    
-    k_smallest_indices = np.argsort(distances)[:k]
-    k_nearest_classes = [image2class[idx] for idx in k_smallest_indices]
-    class_counts = Counter(k_nearest_classes)
-
-    best_class_index = class_counts.most_common(1)[0][0]
-
-    if k_nearest_classes.count(best_class_index) >= vote_threshold * len(k_nearest_classes):
-        return best_class_index
-    else:
-        return -1
-    
-
 if __name__ == '__main__':
-    # import matplotlib.pyplot as plt
-    # embedding_file_path= 'data/data_source/glint360k_cosface_embeddings.npy'
-    # image2class_file_path = 'data/data_source/glint360k_cosface_image2class.pkl'
-    # index2class_file_path = 'data/data_source/glint360k_cosface_index2class.pkl'
+    import matplotlib.pyplot as plt
+    embedding_file_path= 'data/data_source/glint360k_cosface_embeddings.npy'
+    image2class_file_path = 'data/data_source/glint360k_cosface_image2class.pkl'
+    index2class_file_path = 'data/data_source/glint360k_cosface_index2class.pkl'
 
-    # embeddings, image2class, index2class = load_embeddings_and_names(embedding_file_path, image2class_file_path, index2class_file_path)
+    embeddings, image2class, index2class = load_embeddings_and_names(embedding_file_path, image2class_file_path, index2class_file_path)
     
-    # keep_all_mode = False
-    # det_model = GetFace(keep_all = keep_all_mode)
-    # arcface_model = get_recogn_model()
-    # rec_model = GetEmbedding(model= arcface_model, transform= transform_image, device=device, keep_all= keep_all_mode)
+    keep_all_mode = False
+    arcface_model = get_recogn_model()
 
   
-    
-    # folder = "data/Testset/sontung"
-    # for file in os.listdir(folder):
-    #     image_path = os.path.join(folder, file)
-    #     image = Image.open(image_path).convert('RGB')
-    #     align_image, faces, probs, lanmark  = det_model(image)
-    #     plt.imshow(align_image.permute(1, 2, 0).cpu().numpy())
-    #     plt.show()
+    image_folder = "data/Testset/thaotam"
+    for image_name in os.listdir(image_folder):
+        image_path = os.path.join(image_folder, image_name)
+        image = Image.open(image_path).convert('RGB')
+        align_image, faces, probs, lanmark  = getFace(mtcnn, image)
+        pred_embed = getEmbedding(rec_model = arcface_model, transform = transform_image , image = align_image, keep_all = keep_all_mode)
 
-    # pred_embed= rec_model(align_image)
-    # print(pred_embed.shape)
-    # result = find_closest_person(pred_embed, embeddings, image2class)
-    # print(result)
+        result = find_closest_person(pred_embed, embeddings, image2class, index2class)
+        print(result)
 
 
-    import timeit
 
-    def process(data, func):
-        return [func(x) for x in data]  # Áp dụng func lên từng phần tử của danh sách
-
-    def square(x):
-        return x * x
-
-    def process_fixed(data):
-        return [square(x) for x in data]  # Gọi trực tiếp square thay vì truyền vào
-
-    # Danh sách lớn để kiểm tra tốc độ
-    data = list(range(10000))
-
-    # So sánh tốc độ với 10 triệu lần lặp
-    time_direct = timeit.timeit(lambda: process(data, square), number=10**5)
-    time_fixed = timeit.timeit(lambda: process_fixed(data), number=10**5)
-
-    print(f"Truyền hàm trực tiếp: {time_direct:.6f} sec")
-    print(f"Gọi hàm từ file: {time_fixed:.6f} sec")
 
 
 

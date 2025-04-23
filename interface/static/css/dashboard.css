@@ -1,0 +1,674 @@
+/* ============ RESET & FONT ============ */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f7fc;
+    color: #333;
+}
+
+
+/* ============ LAYOUT ============ */
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #343a40;
+    color: #fff;
+    position: fixed;
+    height: 100%;
+    top: 0;
+    left: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
+
+.sidebar:hover {
+    width: 280px;
+}
+
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+    overflow-y: auto;
+    width: 100%;
+    transition: margin-left 0.3s ease;
+}
+
+.tab-content {
+    display: none;
+}
+
+/* ============ SIDEBAR ============ */
+.sidebar h2 {
+    margin-top: 0;
+    font-size: 24px;
+    transition: color 0.3s ease;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    margin: 10px 0;
+}
+
+.sidebar button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.sidebar button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+/* ============ COMMON STYLES ============ */
+h2 {
+    color: #007bff;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+.bucket-name {
+    background-color: #333;
+    color: #ffdd57;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* ============ CONFIG BOX ============ */
+#config .config-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); /* Đổi từ 300px thành 450px để 2 cột */
+    gap: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+#config .config-box {
+    background-color: #f9f9f9;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+#config .config-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+#config .config-box.empty {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+#config .config-box h3 {
+    color: #007bff;
+    margin-bottom: 20px;
+    font-size: 1.4em;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 6px;
+    transition: border-color 0.3s ease;
+}
+
+/* ============ SETTING ITEM ============ */
+#config .setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 0px;
+}
+
+#config .setting label:first-child {
+    font-weight: 600;
+    color: #333;
+    flex: 1;
+    min-width: 160px;
+    font-size: 15px;
+}
+
+#config .setting input[type="range"],
+#config .setting select {
+    flex: 1;
+    min-width: 160px;
+    height: 40px;
+    font-size: 16px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#config .setting select:focus {
+    border-color: #4A90E2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    outline: none;
+}
+
+#config .setting span {
+    font-weight: 500;
+    color: #333;
+    min-width: 50px;
+    text-align: right;
+    font-size: 15px;
+}
+
+#config button {
+    display: block;
+    margin: 30px auto 0;
+    padding: 12px 24px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    transition: background-color 0.3s, transform 0.3s ease;
+}
+
+#config button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+/* ============ SWITCH STYLES ============ */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    background-color: #ccc;
+    border-radius: 34px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transition: 0.4s;
+}
+
+.slider:before {
+    content: "";
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    top: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.4s;
+}
+
+input:checked + .slider {
+    background-color: #5ef500;
+}
+
+input:checked + .slider:before {
+    transform: translateX(24px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+/* ============ CONFIG BUTTON ============ */
+#config button {
+    display: block;
+    margin: 30px auto 0 auto;
+    padding: 12px 24px;
+    font-size: 1.1em;
+}
+
+/* ============ ADD EMPLOYEE SECTION ============ */
+#addEmployee {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    margin: 0 auto;
+    overflow: hidden; /* Ngăn scroll nếu form lớn */
+    transition: box-shadow 0.3s ease;
+}
+
+#addEmployee:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+#addEmployee h2 {
+    color: #007bff;
+    font-size: 2em;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+#addEmployee form {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    margin: 0 auto;
+    overflow: hidden; /* Ngăn scroll */
+}
+
+#addEmployee .setting {
+    margin-bottom: 20px;
+}
+
+#addEmployee .setting label {
+    font-size: 1.1em;
+    color: #333;
+    display: block;
+    margin-bottom: 5px;
+}
+
+#addEmployee .setting input,
+#addEmployee .setting select {
+    display: block;            /* cho đều block-level */
+    width: 100%;               /* chiếm hết khung cha */
+    box-sizing: border-box;    /* padding & border nằm trong 100% */
+    padding: 12px;             /* padding như trước */
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-top: 5px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#addEmployee .setting input:focus,
+#addEmployee .setting select:focus {
+    border-color: #4A90E2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    outline: none;
+}
+
+#addEmployee button[type="submit"] {
+    background-color: #007bff;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    width: 100%;
+    margin-top: 20px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#addEmployee button[type="submit"]:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+#addEmployee #open-camera-button {
+    background-color: #28a745; /* Màu xanh cho nút mở camera */
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    width: 100%;
+    margin-top: 10px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#addEmployee #open-camera-button:hover {
+    background-color: #218838;
+    transform: scale(1.05);
+}
+
+#addEmployee #camera-container {
+    display: none;
+    margin-top: 20px;
+}
+
+#addEmployee video {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+/* Nút đóng modal */
+.close-btn {
+    position: absolute;
+    top: 8px; right: 12px;
+    background: transparent;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+}
+
+/* Modal */
+#addEmployee .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: none; /* Ẩn modal ban đầu */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Nội dung Modal */
+#addEmployee .modal-content {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 500px;
+    width: 100%;
+}
+
+#addEmployee .modal-content h2 {
+    margin-bottom: 20px;
+    color: #007bff;
+}
+
+/* ============ TOAST NOTIFICATIONS ============ */
+.toast {
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    position: fixed;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s, visibility 0s 0.5s;
+}
+
+.toast.show {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.5s;
+}
+
+/* ============ CREATE EMBEDDING SPECIFIC STYLES ============ */
+#createEmbedding {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    margin: 30px auto;
+    transition: all 0.3s ease;
+}
+
+#createEmbedding:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+#createEmbedding h2 {
+    color: #007bff;
+    font-size: 2.2em;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: 700;
+}
+
+/* Styling for the label */
+#createEmbedding label {
+    font-size: 1.2em;
+    color: #333;
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* Styling for the select element */
+#createEmbedding select {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 1.1em;
+    border: 2px solid #007bff; /* Blue border to make it stand out */
+    border-radius: 12px;
+    background-color: #f0f8ff; /* Light blue background */
+    color: #333;
+    appearance: none; /* Remove default dropdown arrow */
+    -webkit-appearance: none; /* Safari */
+    -moz-appearance: none; /* Firefox */
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+/* Focus state to highlight the select field */
+#createEmbedding select:focus {
+    border-color: #4A90E2;
+    background-color: #eaf2ff; /* Light blue background when focused */
+    box-shadow: 0 0 10px rgba(74, 144, 226, 0.2); /* Subtle glow */
+    outline: none;
+}
+
+/* Custom arrow icon for the select */
+#createEmbedding select::after {
+    content: "▼";
+    font-size: 1.2em;
+    color: #007bff;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+/* Remove default dropdown icon in IE and Edge */
+#createEmbedding select::-ms-expand {
+    display: none;
+}
+
+/* Styling for the button */
+#createEmbedding button {
+    background-color: #007bff;
+    color: white;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2em;
+    width: 100%;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin-top: 20px;
+}
+
+#createEmbedding button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+/* Status text for embedding */
+#createEmbedding #embeddingStatus {
+    margin-top: 20px;
+    font-size: 1.1em;
+    color: #333;
+    text-align: center;
+}
+
+#createEmbedding #embeddingStatus.success {
+    color: #28a745;
+}
+
+#createEmbedding #embeddingStatus.error {
+    color: #dc3545;
+}
+
+#createEmbedding #embeddingStatus.loading {
+    color: #ffc107; /* Màu vàng cho trạng thái loading */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em; /* Tăng kích thước chữ */
+}
+
+#createEmbedding #embeddingStatus.loading::before {
+    content: '⏳'; /* Biểu tượng đồng hồ cát */
+    margin-right: 8px;
+    font-size: 2em; /* Kích thước biểu tượng */
+    animation: spin 1s infinite linear; /* Thêm hiệu ứng quay tròn */
+}
+
+/* Định nghĩa animation quay tròn */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg); /* Bắt đầu từ góc 0 độ */
+    }
+    100% {
+        transform: rotate(360deg); /* Quay 360 độ */
+    }
+}
+
+
+/* ============ EXPORT TIMEKEEPING SPECIFIC STYLES ============ */
+#exportTimekeeping {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    margin: 30px auto;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+#exportTimekeeping:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+#exportTimekeeping h2 {
+    color: #28a745;
+    font-size: 2.2em;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+/* Button */
+#exportTimekeeping button {
+    background: linear-gradient(135deg, #28a745, #218838);
+    color: white;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2em;
+    width: 100%;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin-top: 20px;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+#exportTimekeeping button:hover {
+    background-color: #218838;
+    transform: scale(1.05);
+}
+
+/* Status */
+#exportTimekeeping #exportStatus {
+    margin-top: 20px;
+    font-size: 1.1em;
+    text-align: center;
+}
+
+#exportTimekeeping #exportStatus.success {
+    color: #28a745;
+}
+
+#exportTimekeeping #exportStatus.error {
+    color: #dc3545;
+}
+
+/* Animation Section */
+#exportTimekeeping .export-animation {
+    margin: 20px 0;
+}
+
+#exportTimekeeping .export-animation img {
+    width: 60px;
+    height: 60px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+
+#exportTimekeeping label {
+    font-size: 1.1em;
+    color: #333;
+    margin-bottom: 8px;
+    display: block;
+    text-align: left;
+}
+
+#exportTimekeeping input[type="date"] {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1.1em;
+    border: 2px solid #28a745;
+    border-radius: 8px;
+    background-color: #eaf5e3;
+    color: #333;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    transition: border 0.3s ease;
+}
+
+#exportTimekeeping input[type="date"]:focus {
+    border-color: #218838;
+    outline: none;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.2);
+}
