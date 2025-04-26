@@ -1,37 +1,16 @@
 
-import torch
-import os
-import cv2
-from PIL import Image
-from torch.nn.modules.distance import PairwiseDistance
 import torch.nn.functional as F
-from collections import Counter, defaultdict
+import torch
 import numpy as np
-import yaml
-
-
-from models.Anti_spoof.FasNet import Fasnet
-from .utils import get_recogn_model
-from .infer_image import getFace, mtcnn, mtcnn_keep_all, getEmbedding, transform_image
-
-
-# use config file
-with open('config.yaml', 'r') as file:
-    config = yaml.safe_load(file)['identity_person']
-
-# define distance calculator, device and anti-spoof model
-l2_distance = PairwiseDistance(p=2)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-antispoof_model = Fasnet()
 
 
 def find_closest_person(
         pred_embed, 
         embeddings, 
         image2class, 
-        distance_mode=config['distance_mode'], 
-        l2_threshold=config['l2_threshold'], 
-        cosine_threshold=config['cosine_threshold']):
+        distance_mode, 
+        l2_threshold, 
+        cosine_threshold):
     '''
      Finds the closest matching class (person) for a given embedding by comparing it to precomputed embeddings.
 
@@ -89,28 +68,6 @@ def find_closest_person(
     
     return -1
  
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    embedding_file_path= 'data/data_source/glint360k_cosface_embeddings.npy'
-    image2class_file_path = 'data/data_source/glint360k_cosface_image2class.pkl'
-    index2class_file_path = 'data/data_source/glint360k_cosface_index2class.pkl'
-
-    embeddings, image2class, index2class = load_embeddings_and_names(embedding_file_path, image2class_file_path, index2class_file_path)
-    
-    keep_all_mode = False
-    arcface_model = get_recogn_model()
-
-  
-    image_folder = "data/Testset/thaotam"
-    for image_name in os.listdir(image_folder):
-        image_path = os.path.join(image_folder, image_name)
-        image = Image.open(image_path).convert('RGB')
-        align_image, faces, probs, lanmark  = getFace(mtcnn, image)
-        pred_embed = getEmbedding(rec_model = arcface_model, transform = transform_image , image = align_image, keep_all = keep_all_mode)
-
-        result = find_closest_person(pred_embed, embeddings, image2class, index2class)
-        print(result)
 
 
 

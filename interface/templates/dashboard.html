@@ -164,10 +164,12 @@
                     <label for="name">Name:</label>
                     <input type="text" id="name" name="name" required placeholder="Enter employee name">
                   </div>
+              
                   <div class="setting">
                     <label for="age">Age:</label>
                     <input type="number" id="age" name="age" required placeholder="Enter employee age">
                   </div>
+              
                   <div class="setting">
                     <label for="gender">Gender:</label>
                     <select id="gender" name="gender">
@@ -176,39 +178,71 @@
                       <option value="Other">Other</option>
                     </select>
                   </div>
+              
                   <div class="setting">
                     <label for="salary">Salary:</label>
                     <input type="number" id="salary" name="salary" value="0" required placeholder="Enter salary">
                   </div>
+              
                   <div class="setting">
                     <label for="email">Email:</label>
                     <input type="email" id="email" name="email" placeholder="Enter email (optional)">
                   </div>
+              
                   <div class="setting">
                     <label for="year">Experience Year:</label>
                     <input type="number" id="year" name="year" value="1" required placeholder="Enter years of experience">
                   </div>
-                  
-                  <input type="hidden" id="photo-input" name="photo">
-                  
-                  <!-- Button to open camera modal -->
+              
+                  <!-- Buttons -->
                   <div class="setting">
+                    <button type="button" id="open-upload-btn">Upload Photo from Computer</button>
                     <button type="button" id="open-modal-btn">Open Camera</button>
                   </div>
-                  
+              
+                  <!-- Hidden file input & hidden captured image input -->
+                  <input type="file" id="upload-photo-hidden" accept="image/*" multiple style="display: none;">
+                  <input type="hidden" id="photo-input" name="photo">
+              
                   <button type="submit">Add Employee</button>
                 </form>
-
+              
                 <div id="toast" class="toast">Photo has been taken!</div>
-            
-                <!-- Camera modal overlay -->
+              
+                <!-- Camera modal -->
                 <div id="camera-modal" class="modal">
-                    <div class="modal-content">
-                        <button class="close-btn" id="close-modal">&times;</button>
-                        <h3>Take Employee Photo</h3>
-                        <video id="video" autoplay playsinline></video>
-                        <button id="capture">Capture Photo</button>
-                    </div>
+                  <div class="modal-content">
+                    <button class="close-btn" id="close-modal">&times;</button>
+                    <h3>Take Employee Photo</h3>
+                    <video id="video" autoplay playsinline></video>
+                    <button id="capture">Capture Photo</button>
+                  </div>
+                </div>
+              
+                <!-- Upload modal -->
+                <div id="upload-modal" class="modal">
+                  <div class="modal-content">
+                    <button class="close-btn" id="close-upload-modal">&times;</button>
+                    <h3>Select Photos from Your Computer</h3>
+                    <input type="file" id="upload-photo-real" accept="image/*" multiple>
+                    <p style="margin-top: 1rem;">You can select multiple photos.</p>
+                  </div>
+                </div>
+
+                <div id="loading-overlay" style="
+                    display: none;
+                    position: fixed;
+                    top: 0; left: 0;
+                    width: 100vw; height: 100vh;
+                    background-color: rgba(0,0,0,0.6);
+                    z-index: 9999;
+                    justify-content: center;
+                    align-items: center;
+                    color: white;
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    ">
+                    ⏳ Uploading, please wait...
                 </div>
             </div>
               
