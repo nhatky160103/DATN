@@ -1,37 +1,24 @@
 import torch
 import numpy as np
-import os
 import pickle
 from PIL import Image
 from tqdm import tqdm
 from io import BytesIO
 import cloudinary.uploader
-import io
 import requests
-from .infer_image import  transform_image, mtcnn
-from .utils import get_recogn_model
-from database.firebase import get_data
 from pathlib import Path
+import time
+
+
+from .infer_image import  transform_image
+from .utils import get_recogn_model, device, mtcnn
+from database.firebase import get_data
 from .blazeFace import detect_face_and_nose
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-workers = 0 if os.name == 'nt' else 4
-
-
-def custom_transform_image(img):
-    transform = transforms.Compose([
-        transforms.Resize((112, 112)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    ])
-
-    img_batch = transform(img) 
-    img_batch = img_batch.unsqueeze(0) 
-    return img_batch
 
 class EmbeddingManager:
-    def __init__(self, bucket_name, recognition_model_name, local_root="local_embeddings"):
+    def __init__(self, bucket_name, recognition_model_name='ms1mv3_arcface', local_root="local_embeddings"):
         self.bucket_name = bucket_name
         self.recognition_model_name = recognition_model_name
         self.cloud_folder = f"{bucket_name}/Embeddings"
@@ -45,77 +32,156 @@ class EmbeddingManager:
         np.save(self.embeddings_file, embeddings)
         with open(self.metadata_file, "wb") as f:
             pickle.dump((image2class, index2class), f)
-        print(f"💾 Saved locally → {self.embeddings_file}, {self.metadata_file}")
+        print(f"📎 Saved locally → {self.embeddings_file}, {self.metadata_file}")
 
     def upload_to_cloudinary(self, embeddings, image2class, index2class):
+        """
+        Upload embeddings and metadata to Cloudinary, invalidating cache to ensure latest load.
+        """
         # Upload embeddings
-        npy_buffer = io.BytesIO()
+        npy_buffer = BytesIO()
         np.save(npy_buffer, embeddings)
         npy_buffer.seek(0)
-        upload_result = cloudinary.uploader.upload(
+        cloudinary.uploader.upload(
             npy_buffer,
             folder=self.cloud_folder,
             public_id=f"{self.recognition_model_name}_embeddings",
             resource_type="raw",
-            overwrite=True
+            overwrite=True,
+            invalidate=True
         )
-        print(f"☁️ Uploaded embeddings → {upload_result['secure_url']}")
-
         # Upload metadata
-        meta_buffer = io.BytesIO()
+        meta_buffer = BytesIO()
         pickle.dump((image2class, index2class), meta_buffer)
         meta_buffer.seek(0)
-        upload_result = cloudinary.uploader.upload(
+        cloudinary.uploader.upload(
             meta_buffer,
             folder=self.cloud_folder,
             public_id=f"{self.recognition_model_name}_metadata",
             resource_type="raw",
-            overwrite=True
+            overwrite=True,
+            invalidate=True
         )
-        print(f"☁️ Uploaded metadata → {upload_result['secure_url']}")
+        print("☁️ Uploaded embeddings and metadata to Cloudinary (cache invalidated)")
 
-    def load(self):
+    def load(self, load_local: bool = False):
+        """
+        Load embeddings and metadata.
+
+        If load_local=True: load from local storage only.
+        Otherwise, attempt Cloudinary first, fallback to local on failure.
+        """
         embeddings_public_id = f"{self.bucket_name}/Embeddings/{self.recognition_model_name}_embeddings"
         metadata_public_id = f"{self.bucket_name}/Embeddings/{self.recognition_model_name}_metadata"
 
+        # Nếu chọn load từ local thì bỏ qua cloudinary luôn
+        if load_local:
+            try:
+                embeddings = np.load(self.embeddings_file)
+                with open(self.metadata_file, "rb") as f:
+                    image2class, index2class = pickle.load(f)
+                print("✅ Loaded from local storage (by request)")
+                return embeddings, image2class, index2class
+            except Exception as e:
+                print(f"❌ Failed to load locally: {e}")
+                return None, None, None
+
+        # Load từ Cloudinary trước, nếu thất bại thì fallback về local
         try:
-            # Build URL trực tiếp
-            emb_url = cloudinary.CloudinaryImage(embeddings_public_id).build_url(resource_type="raw")
-            meta_url = cloudinary.CloudinaryImage(metadata_public_id).build_url(resource_type="raw")
+            base_emb_url = cloudinary.CloudinaryImage(embeddings_public_id).build_url(resource_type="raw")
+            base_meta_url = cloudinary.CloudinaryImage(metadata_public_id).build_url(resource_type="raw")
+            ts = int(time.time())
+            emb_url = f"{base_emb_url}?t={ts}"
+            meta_url = f"{base_meta_url}?t={ts}"
 
             emb_response = requests.get(emb_url)
             emb_response.raise_for_status()
-            embeddings = np.load(io.BytesIO(emb_response.content))
+            embeddings = np.load(BytesIO(emb_response.content))
 
             meta_response = requests.get(meta_url)
             meta_response.raise_for_status()
-            image2class, index2class = pickle.load(io.BytesIO(meta_response.content))
+            image2class, index2class = pickle.load(BytesIO(meta_response.content))
 
-            print("✅ Loaded from Cloudinary")
-
+            print("✅ Loaded from Cloudinary (fresh)")
             return embeddings, image2class, index2class
 
         except Exception as e:
             print(f"⚠️ Cloudinary load failed: {e}")
             print("🔁 Trying local fallback...")
-
             try:
                 embeddings = np.load(self.embeddings_file)
                 with open(self.metadata_file, "rb") as f:
                     image2class, index2class = pickle.load(f)
-                print("✅ Loaded from local storage")
+                print("✅ Loaded from local storage (fallback)")
                 return embeddings, image2class, index2class
-
             except Exception as le:
                 print(f"❌ Local load failed too: {le}")
                 return None, None, None
 
+    def add_employee(self, person_id):
+        print(f"➕ Adding new employee: {person_id}")
 
-def create_data_embeddings(bucket_name, recognition_model_name = 'ms1mv3_arcface', backbone_name='r50', batch_size: int = 32, device='cpu'):
+        embeddings, image2class, index2class = self.load()
+        if embeddings is None:
+            embeddings = np.zeros((0, 512))
+            image2class = {}
+            index2class = {}
+
+        recognition_model = get_recogn_model()
+
+        person_data = get_data(f"{self.bucket_name}/Employees/{person_id}")
+        image_urls = person_data.get("images", []) if person_data else []
+        if not image_urls:
+            print(f"⚠️ No images found for {person_id}")
+            return
+
+        aligned = []
+        image_index = len(image2class)
+        class_index = max(index2class.keys(), default=-1) + 1
+
+        for url in image_urls:
+            try:
+                response = requests.get(url)
+                response.raise_for_status()
+                image = Image.open(BytesIO(response.content)).convert("RGB")
+                x_aligned = mtcnn(image)
+                if x_aligned is not None:
+                    x_aligned = transform_image(x_aligned)
+                else:
+                    face, _, prob = detect_face_and_nose(image)
+                    if face is not None and prob > 0.7:
+                        x1, y1, x2, y2 = map(int, face)
+                        face_crop = image.crop((x1, y1, x2, y2))
+                        x_aligned = transform_image(face_crop)
+                    else:
+                        x_aligned = transform_image(image)
+                aligned.append(x_aligned)
+                image2class[image_index] = class_index
+                image_index += 1
+            except Exception as e:
+                print(f"❌ Error processing image {url}: {e}")
+
+        if not aligned:
+            print(f"❌ No valid images processed for {person_id}")
+            return
+
+        batch = torch.cat(aligned, dim=0).to(device)
+        with torch.no_grad():
+            new_embeddings = recognition_model(batch).detach().cpu().numpy()
+
+        embeddings = np.vstack([embeddings, new_embeddings])
+        index2class[class_index] = person_id
+
+        self.save_local(embeddings, image2class, index2class)
+        self.upload_to_cloudinary(embeddings, image2class, index2class)
+        print(f"✅ {person_id} added successfully with {len(new_embeddings)} embeddings")
+        return embeddings, image2class, index2class
+
+
+
+def create_data_embeddings(bucket_name, batch_size: int = 32):
     # Tải mô hình nhận dạng
-    recognition_model = get_recogn_model(recognition_model_name).to(device)
-    recognition_model.eval()
-
+    recognition_model = get_recogn_model()
     # Lấy dữ liệu employees từ Firebase hoặc từ nơi nào đó
     employees_data = get_data(f'{bucket_name}/Employees')
     if not employees_data:
@@ -160,9 +226,9 @@ def create_data_embeddings(bucket_name, recognition_model_name = 'ms1mv3_arcface
                     if face is not None and prob > 0.7:
                         x1, y1, x2, y2 = map(int, face)
                         face = image.crop(x1, y1, x2, y2)
-                        x_aligned = custom_transform_image(face)
+                        x_aligned = transform_image(face)
                     else:
-                        x_aligned = custom_transform_image(image)
+                        x_aligned = transform_image(image)
 
                     aligned.append(x_aligned)
                 
@@ -196,7 +262,7 @@ def create_data_embeddings(bucket_name, recognition_model_name = 'ms1mv3_arcface
         return None
 
     # Lúc này bạn có thể lưu embeddings & metadata vào Cloudinary và local
-    manager = EmbeddingManager(bucket_name, recognition_model_name)
+    manager = EmbeddingManager(bucket_name)
     manager.save_local(embeddings, image2class, index2class)
     manager.upload_to_cloudinary(embeddings, image2class, index2class)
 
@@ -205,9 +271,9 @@ def create_data_embeddings(bucket_name, recognition_model_name = 'ms1mv3_arcface
 
 if __name__ == '__main__':
     
-    # create_data_embeddings('Hust', 'glint360k_cosface', 'r50')
-    manager = EmbeddingManager('Hust', 'glint360k_cosface')
-    embeddings, image2class, index2class = manager.load()
+    # create_data_embeddings('Hust', 'ms1mv3_arcface', 'r100')
+    manager = EmbeddingManager('Hust')
+    embeddings, image2class, index2class = manager.load(load_local = True)
     if embeddings is None:
         print("❌ Failed to load embeddings!")
     else:

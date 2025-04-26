@@ -1,5 +1,4 @@
 from .iresnet import iresnet18, iresnet34, iresnet50, iresnet100, iresnet200
-from .iresnet_plus import iresnet18_plus, iresnet34_plus, iresnet50_plus, iresnet100_plus
 from .iresnet_se import iresnet50_se
 
 
@@ -15,15 +14,7 @@ def get_model(name, **kwargs):
         return iresnet100(False, **kwargs)
     elif name == "r200":
         return iresnet200(False, **kwargs)
- 
-    elif name == "r18_plus":
-         return iresnet18_plus()
-    elif name == "r34_plus":
-         return iresnet34_plus()
-    elif name == "r50_plus":
-         return iresnet50_plus()
-    elif name == "r100_plus":
-         return iresnet100_plus()
+
     elif name == "r50_se":
         return iresnet50_se(False, **kwargs)
     else:

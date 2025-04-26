@@ -2,8 +2,7 @@ import os
 from datetime import datetime
 from .firebase import get_data, save_data
 import pandas as pd
-import firebase_admin
-from firebase_admin import credentials, db
+from firebase_admin import db
 
 def create_daily_timekeeping(bucket_name, date=None):
 
@@ -166,9 +165,6 @@ def export_to_excel(bucket_name, date):
     return True
 
 if __name__ == "__main__":
-
-    # data = get_data(f"Employees_Timekeeping/2025-04-13/UNKNOWN")
-    # print(data)
 
     # process_check_in_out('Hust', "000000")
     create_daily_timekeeping('Hust')

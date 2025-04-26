@@ -1,13 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const openBtn  = document.getElementById('open-modal-btn');
-  const modal    = document.getElementById('camera-modal');
+  const openBtn = document.getElementById('open-modal-btn');
+  const modal = document.getElementById('camera-modal');
   const closeBtn = document.getElementById('close-modal');
-  const video    = document.getElementById('video');
-  const capture  = document.getElementById('capture');
-  const toast    = document.getElementById('toast');
+  const video = document.getElementById('video');
+  const capture = document.getElementById('capture');
+  const toast = document.getElementById('toast');
+  const openUploadBtn = document.getElementById('open-upload-btn');
+  const uploadModal = document.getElementById('upload-modal');
+  const closeUploadBtn = document.getElementById('close-upload-modal');
+  const realFileInput = document.getElementById('upload-photo-real');
+  const hiddenFileInput = document.getElementById('upload-photo-hidden');
+  const loadingOverlay = document.getElementById('loading-overlay'); // ✅ Thêm dòng này
   let stream;
   let capturedBlobs = [];  // Mảng để lưu nhiều ảnh
+  let selectedFiles = [];  // Mảng để lưu các ảnh đã chọn từ máy tính
 
+  // Open camera modal
   openBtn.addEventListener('click', async () => {
     modal.style.display = 'flex';
     try {
@@ -19,22 +27,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Capture photo from camera
   capture.addEventListener('click', () => {
     const canvas = document.createElement('canvas');
-    canvas.width  = video.videoWidth;
+    canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
 
     canvas.toBlob(blob => {
       if (blob) {
         capturedBlobs.push(blob);  // Thêm ảnh vào mảng
-        showToast(`Đã chụp ${capturedBlobs.length} ảnh!`);
+        showToast(`Captured ${capturedBlobs.length} photos!`);
       }
     }, 'image/jpeg');
   });
 
+  // Close camera modal
   closeBtn.addEventListener('click', closeModal);
-
   function closeModal() {
     modal.style.display = 'none';
     if (stream) {
@@ -43,6 +52,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Upload photo modal
+  openUploadBtn.addEventListener('click', () => {
+    uploadModal.style.display = 'flex';
+  });
+
+  closeUploadBtn.addEventListener('click', () => {
+    uploadModal.style.display = 'none';
+  });
+
+  // Handle file selection for upload
+  realFileInput.addEventListener('change', () => {
+    selectedFiles = Array.from(realFileInput.files);
+    hiddenFileInput.files = realFileInput.files;  // Assign the selected files to hidden input
+    uploadModal.style.display = 'none';
+    showToast(`${selectedFiles.length} files selected.`);
+  });
+
+  // Handle form submission
+  const form = document.getElementById('employeeForm');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    loadingOverlay.style.display = 'flex';  // ✅ Hiện overlay khi submit
+
+    const formData = new FormData(form);
+
+    // Add photos captured by camera
+    capturedBlobs.forEach((blob, index) => {
+      formData.append('photos', blob, `photo_${index}.jpg`);
+    });
+
+    // Add photos uploaded from computer
+    selectedFiles.forEach((file, index) => {
+      formData.append('photos', file, file.name);
+    });
+
+    fetch('/add_member', {
+      method: 'POST',
+      body: formDatasave_config
+    })
+    .then(res => res.json())
+    .then(result => {
+      loadingOverlay.style.display = 'none';  // ✅ Ẩn overlay khi có phản hồi
+
+      if (result.status === 'success') {
+        showToast('Employee added successfully!');
+        form.reset();
+        capturedBlobs = [];
+        selectedFiles = [];  // Reset uploaded files
+      } else {
+        showToast('Failed to add employee');
+      }
+    })
+    .catch(err => {
+      loadingOverlay.style.display = 'none';  // ✅ Ẩn overlay khi lỗi
+      console.error('Form submission error:', err);
+      showToast('Connection error.');
+    });
+  });
+
+  // Show toast message
   function showToast(message) {
     toast.textContent = message;
     toast.classList.add('show');
@@ -50,38 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
       toast.classList.remove('show');
     }, 2000);
   }
-
-  const form = document.getElementById('employeeForm');
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const formData = new FormData(form);
-
-    // Gửi tất cả ảnh đã chụp
-    capturedBlobs.forEach((blob, index) => {
-      formData.append('photos', blob, `photo_${index}.jpg`);
-    });
-
-    fetch('/add_member', {
-      method: 'POST',
-      body: formData
-    })
-    .then(res => res.json())
-    .then(result => {
-      if (result.status === 'success') {
-        showToast('Add employee successfully!');
-        form.reset();
-        capturedBlobs = [];  // Reset mảng ảnh sau khi gửi
-      } else {
-        showToast('Can not add employee');
-      }
-    })
-    .catch(err => {
-      console.error('Lỗi gửi form:', err);
-      showToast('Lỗi kết nối đến server.');
-    });
-  });
 });
+
 
 
 function collectConfigData() {

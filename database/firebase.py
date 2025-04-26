@@ -1,8 +1,6 @@
 import os
-from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, db
-from datetime import datetime
 import time
 
 from .cloudinary import  upload_folder_to_cloudinary, delete_folder_from_cloudinary
@@ -137,19 +135,30 @@ def get_all_bucket_names():
     return list(data.keys())
 
 
+def create_new_bucket(bucket_name: str, config_data: dict = None):
+    # Kiểm tra bucket đã tồn tại chưa
+    existing_buckets = get_all_bucket_names()
+    if bucket_name in existing_buckets:
+        print(f"⚠️ Bucket '{bucket_name}' already exists.")
+        return False
 
-# Example usage
-if __name__ == "__main__":
-    # data_folder = "data/Testset"
-    # for name in os.listdir(data_folder):
-    #     folder_path = os.path.join(data_folder, name)
-    #     add_person("Neu", folder_path, name, 25, "Male", salary=1000, email="employee@gmail.com", year = 1)
-    bucket_list = get_all_bucket_names()
-    print(bucket_list)
+    # Tạo cấu trúc bucket cơ bản
+    db.reference(f"{bucket_name}/Employees").set({})
+    print(f"✅ Created new bucket: '{bucket_name}' with empty Employees list.")
+
+    # Tạo config nếu được cung cấp
+    if config_data:
+        db.reference(f"{bucket_name}/Config").set(config_data)
+        print(f"✅ Config set for bucket '{bucket_name}'.")
+
+    return True
 
 
-   
 
 
     
     
+if __name__ =="__main__":
+    data = load_config_from_bucket('Hust')
+    print(data)
+    # delete_person('Hust', '000009')

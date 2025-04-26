@@ -1,30 +1,32 @@
-import torch
 import cv2
 from models.Anti_spoof.FasNet import Fasnet
 import numpy as np
 from collections import Counter
-from .infer_image import getEmbedding, mtcnn
-import os
+from .infer_image import getEmbedding
 from .identity_person import find_closest_person
 from playsound import playsound
 import yaml
 import threading
-from .utils import get_recogn_model
+from .utils import get_recogn_model, mtcnn
 import time
-from .get_embedding import EmbeddingManager
 from .blazeFace import detect_face_and_nose
-
-#use config
-with open('config.yaml', 'r') as file:
-    config = yaml.safe_load(file)['infer_video']
+from PIL import Image, ImageSequence
 
 # get recogn model
 arcface_model = get_recogn_model()
 antispoof_model = Fasnet()
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+def yield_loading_gif_frames(gif_path):
+    gif = Image.open(gif_path)
 
+    for frame in ImageSequence.Iterator(gif):
+        frame_np = np.array(frame)
+        image_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
+
+        _, buffer = cv2.imencode('.jpg', image_rgb)
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
 
 
@@ -62,10 +64,12 @@ def draw_camera_focus_box(frame, width, height, color=(0, 255, 255), thickness=1
 
 
     
-def infer_camera(min_face_area=config['min_face_area'], 
-                 bbox_threshold=config['bbox_threshold'], 
-                 required_images=config['required_images']):
-
+def infer_camera(config = None, 
+                 result_queue = None
+                 ):
+    min_face_area=config['infer_video']['min_face_area']
+    bbox_threshold=config['infer_video']['bbox_threshold'] 
+    required_images=config['infer_video']['required_images']
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
@@ -86,6 +90,10 @@ def infer_camera(min_face_area=config['min_face_area'],
         
         face , center_point, prob = detect_face_and_nose(frame)
         if face is None or prob is None or center_point is None:
+            _, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
             continue
 
         center_x, center_y = map(int, center_point)
@@ -165,15 +173,19 @@ def infer_camera(min_face_area=config['min_face_area'],
     
         if len(valid_images) >= required_images:
             print(f"Collect enough {required_images} valid images.")
+            
+            gif_path = "interface/static/assets/Loading.gif"
+            yield from yield_loading_gif_frames(gif_path)
+
             break
-     
+
     cap.release()
     cv2.destroyAllWindows()
-    result = {
-        'valid_images': valid_images,
-        'is_reals': is_reals
-    }
-    return result
+    if result_queue:
+                result_queue.put({
+                    'valid_images': valid_images,
+                    'is_reals': is_reals
+                })
 
 
 def check_validation(
@@ -181,31 +193,16 @@ def check_validation(
         embeddings, 
         image2class, 
         index2class,
-        recogn_model, 
-        is_anti_spoof=config['is_anti_spoof'], 
-        validation_threshold=config['validation_threshold'],
-        distance_mode=config['distance_mode'], 
-        anti_spoof_threshold=config['anti_spoof_threshold']):
-    '''
-    Validates and identifies a person based on input images and embeddings.
+        config = None,
+        ):
 
-    Parameters:
-        input (dict): A dictionary containing:
-            - 'valid_images' (list): List of valid preprocessed face images (torch.Tensor).
-            - 'is_reals' (list): List of tuples (bool, float) indicating if the image passed anti-spoof checks and its score.
-        embeddings Tensor: Precomputed embeddings for known classes.
-        image2class (dict): Mapping of embeddings to their respective class IDs.
-        recogn_model (torch.nn.Module): The face recognition model used for inference.
-        is_anti_spoof (bool): Whether to apply anti-spoofing validation.
-        validation_threshold (float): The minimum ratio of valid votes required to confirm identification.
-        is_vote (bool): Whether to use voting logic for identification.
-        distance_mode (str): The distance metric used for embedding comparison ('cosine' or 'euclidean').
-        anti_spoof_threshold (float): The score threshold for anti-spoof validation.
+    is_anti_spoof=config['infer_video']['is_anti_spoof']
+    validation_threshold=config['infer_video']['validation_threshold']
+    anti_spoof_threshold=config['infer_video']['anti_spoof_threshold'] 
+    distance_mode=config['identity_person']['distance_mode']
+    l2_threshold=config['identity_person']['l2_threshold']
+    cosine_threshold=config['identity_person']['cosine_threshold']
 
-    Returns:
-        str or bool: The name of the identified person if validation succeeds, otherwise False.
-
-    '''
     valid_images = input['valid_images']
 
     if len(valid_images) == 0:
@@ -217,14 +214,25 @@ def check_validation(
     for i, raw_image in enumerate(valid_images):
         image = mtcnn(raw_image)
         if image is None:
-            image = raw_image
+            face, _, prob = detect_face_and_nose(raw_image)
+            if face is not None:
+                x1, y1, x2, y2 = map(int, face)
+                image = raw_image[y1:y2, x1:x2]
+
+            else: 
+                image = raw_image
         if is_anti_spoof:
             if not input['is_reals'][i][0] and input['is_reals'][i][1] > anti_spoof_threshold:
                 continue
 
-        pred_embed = getEmbedding(recogn_model, image)
+        pred_embed = getEmbedding(arcface_model, image)
 
-        result = find_closest_person(pred_embed, embeddings, image2class, distance_mode=distance_mode)
+        result = find_closest_person(pred_embed, 
+                                    embeddings, 
+                                    image2class, 
+                                    distance_mode=distance_mode, 
+                                    l2_threshold = l2_threshold, 
+                                    cosine_threshold = cosine_threshold)
 
         print(result)
         if result != -1:
@@ -234,7 +242,6 @@ def check_validation(
     
     majority_threshold = len(valid_images) * validation_threshold
 
-    person_identified = False
 
     for cls, count in class_count.items():
         if count >= majority_threshold:
@@ -246,36 +253,16 @@ def check_validation(
                 playsound('audio/greeting.mp3')
             except Exception as e:
                 print(f"Lỗi khi phát âm thanh: {e}")
-      
-            person_identified = True
 
-    if not person_identified:
-        valid_images_len= len(valid_images)
-        print("Unknown person")
-        try:
-            playsound('audio/retry.mp3')
-        except Exception as e:
-            print(f"Lỗi khi phát âm thanh: {e}")
+            return person_id
+
+    print("Unknown person")
+    try:
+        playsound('audio/retry.mp3')
+        return 'UNKNOWN'
+    except Exception as e:
+        print(f"Lỗi khi phát âm thanh: {e}")
        
-       
-    if person_identified:
-        return person_id
-    return False
 
-
-if __name__ == '__main__':
-
-    manager = EmbeddingManager('Hust', 'glint360k_cosface')
-    embeddings, image2class, index2class = manager.load()
-    
-    result = infer_camera()
-    # check_validation(result, embeddings, image2class, index2class, arcface_model)
-    # print(result['is_reals'])
-    for image in result['valid_images']:
-        image = mtcnn(image).numpy().transpose(1,2,0)
-        print(type(image))
-        cv2.imshow('image', image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
 
 
