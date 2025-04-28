@@ -23,10 +23,42 @@
                     </option>
                 {% endfor %}
             </select>
-            <a href="/dashboard" target="_blank">
-                <button>📊 Open Dashboard</button>
-            </a>
+
+            <div class="button_container">
+                <a href="/dashboard" target="_blank">
+                    <button>📊 Open Dashboard</button>
+                </a>
+                <button onclick="openNewBucketModal()">📦 New bucket</button>
+            </div>
         </div>
+
+        <div id="loading-overlay" style="
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: rgba(0,0,0,0.6);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            ">
+            ⏳ Uploading, please wait...
+        </div>
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- Modal nhập bucket -->
+        <div id="newBucketModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closeNewBucketModal()">&times;</span>
+                <h2>Create New Bucket</h2>
+                <input type="text" id="bucketNameInput" placeholder="Enter bucket name">
+                <button onclick="createNewBucket()">Create</button>
+            </div>
+        </div>
+
 
         <!-- Modal hiển thị camera -->
         <div id="cameraModal" class="camera-modal hidden">

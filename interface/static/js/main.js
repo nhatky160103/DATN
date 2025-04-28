@@ -32,6 +32,8 @@ function closeCamera() {
 
     cameraFeed.src = ""; // Ngắt kết nối stream
 
+    clearInterval(resultCheckingInterval);
+
     cameraModal.classList.remove("show");
     setTimeout(() => {
         cameraModal.classList.add("hidden");
@@ -141,3 +143,57 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => console.error('Error:', error));
     }
   });
+
+
+
+function openNewBucketModal() {
+    document.getElementById('newBucketModal').classList.remove('hidden');
+}
+
+function closeNewBucketModal() {
+    document.getElementById('newBucketModal').classList.add('hidden');
+}
+
+function createNewBucket() {
+    const bucketName = document.getElementById('bucketNameInput').value.trim();
+    const loadingOverlay = document.getElementById('loading-overlay'); 
+    if (!bucketName) {
+        showToast("❌ Please enter a bucket name!", true);
+        return;
+    }
+
+    loadingOverlay.style.display = 'flex';
+    fetch('/create_bucket', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ bucket_name: bucketName })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingOverlay.style.display = 'none';
+        if (data.success) {
+            showToast(`✅ Created bucket '${bucketName}' successfully!`);
+            closeNewBucketModal();
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showToast(`⚠️ ${data.message}`, true);
+        }
+    })
+    .catch(error => {
+        loadingOverlay.style.display = 'none';
+        showToast("❌ Error creating bucket!", true);
+        console.error(error);
+    });
+}
+
+function showToast(message, isError=false) {
+    const toast = document.getElementById('toast');
+    toast.innerText = message;
+    toast.style.backgroundColor = isError ? '#f44336' : '#4CAF50';
+    toast.classList.remove('hidden');
+    setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 3000);
+}

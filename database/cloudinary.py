@@ -19,6 +19,25 @@ cloudinary.config(
     api_secret=api_secret
 )
 
+
+def cloudinary_new_bucket(bucket_name):
+    folders = [
+        bucket_name,
+        f"{bucket_name}/Employees",
+        f"{bucket_name}/Embeddings"
+    ]
+
+    for folder in folders:
+        try:
+            cloudinary.api.create_folder(folder)
+            print(f"✅ Created folder '{folder}' on Cloudinary!")
+        except Exception as e:
+            if "already exists" in str(e):
+                print(f"⚠️ Folder '{folder}' already exists.")
+            else:
+                print(f"❌ Failed to create folder '{folder}': {e}")
+
+
 # Upload folder to Cloudinary
 def upload_folder_to_cloudinary(bucket_name, person_id, folder_path):
     if not os.path.exists(folder_path):
@@ -120,4 +139,5 @@ if __name__ == "__main__":
     # upload_folder_to_cloudinary('Hust', '000001', 'data/Testset/baejun')
     # image_list = get_images_from_cloudinary('Hust', '000000')
     # print(image_list)
-    upload_embedding_to_cloudinary('Hust', 'data/data_source')
+    # upload_embedding_to_cloudinary('Hust', 'data/data_source')
+    cloudinary_new_bucket('Huce')

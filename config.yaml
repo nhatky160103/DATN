@@ -13,10 +13,3 @@ identity_person:
   cosine_threshold: 0.80
   distance_mode: 'cosine'
 
-
-collect_data:
-  min_face_area: 10000
-  bbox_threshold: 0.6
-  required_images: 30
-  is_anti_spoof: False
-  anti_spoof_threshold: 0.95
