@@ -8,26 +8,31 @@
 </head>
 
 <body>
+    <div id="toastContainer">
+        <div id="toast" class="toast"></div>
+    </div>
+
     <div class="dashboard-container">
         <!-- Fixed left sidebar -->
         <div class="sidebar">
             <h2>📋 Admin</h2>
-            <p style="color: #ccc; font-size: 14px;">🪣 Bucket: <strong>{{ bucket_name }}</strong></p>
+            <p>🪣 Bucket: <strong>{{ bucket_name }}</strong></p>
             <ul>
                 <li><button onclick="showTab('config')">Config</button></li>
                 <li><button onclick="showTab('addEmployee')">Add Employee</button></li>
                 <li><button onclick="showTab('createEmbedding')">Create Embedding</button></li>
                 <li><button onclick="showTab('exportTimekeeping')">Export Timekeeping</button></li>
+                <li><button onclick="showTab('deletePerson')">Delete Employee</button></li> <!-- New tab -->
             </ul>
             <a href="/">
-                <button>🎥 Open camera</button>
+                <button>📷 Open camera</button>
             </a>
         </div>
 
         <!-- Main content, scrollable -->
         <div class="main-content">
             <div id="config" class="tab-content">
-                <h2>🎥 Configuration</h2>
+                <h2>⚙️ Configuration</h2>
         
                 <div class="config-container">
                     <!-- infer_video -->
@@ -111,46 +116,6 @@
                             <span id="identity_distance_mode_val">{{ config['identity_person']['distance_mode'] }}</span>
                         </div>
                     </div>
-        
-                    <!-- collect_data -->
-                    <div class="config-box">
-                        <h3>collect_data</h3>
-                        <div class="setting">
-                            <label for="collect_min_face_area">min_face_area:</label>
-                            <input type="range" id="collect_min_face_area" min="0.01" max="100000" step="1" 
-                                   value="{{ config['collect_data']['min_face_area'] }}" 
-                                   oninput="updateValue('collect_min_face_area_val', this.value)">
-                            <span id="collect_min_face_area_val">{{ config['collect_data']['min_face_area'] }}</span>
-                        </div>
-                        <div class="setting">
-                            <label for="collect_bbox_threshold">bbox_threshold:</label>
-                            <input type="range" id="collect_bbox_threshold" min="0.1" max="1" step="0.01" 
-                                   value="{{ config['collect_data']['bbox_threshold'] }}" 
-                                   oninput="updateValue('collect_bbox_threshold_val', this.value)">
-                            <span id="collect_bbox_threshold_val">{{ config['collect_data']['bbox_threshold'] }}</span>
-                        </div>
-                        <div class="setting">
-                            <label for="collect_required_images">required_images:</label>
-                            <input type="range" id="collect_required_images" min="1" max="50" step="1" 
-                                   value="{{ config['collect_data']['required_images'] }}" 
-                                   oninput="updateValue('collect_required_images_val', this.value)">
-                            <span id="collect_required_images_val">{{ config['collect_data']['required_images'] }}</span>
-                        </div>
-                        <div class="setting">
-                            <label for="collect_is_anti_spoof">is_anti_spoof:</label>
-                            <label class="switch">
-                                <input type="checkbox" id="collect_is_anti_spoof" {% if config['collect_data']['is_anti_spoof'] %}checked{% endif %}>
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-                        <div class="setting">
-                            <label for="collect_anti_spoof_threshold">anti_spoof_threshold:</label>
-                            <input type="range" id="collect_anti_spoof_threshold" min="0.1" max="1" step="0.01" 
-                                   value="{{ config['collect_data']['anti_spoof_threshold'] }}" 
-                                   oninput="updateValue('collect_anti_spoof_threshold_val', this.value)">
-                            <span id="collect_anti_spoof_threshold_val">{{ config['collect_data']['anti_spoof_threshold'] }}</span>
-                        </div>
-                    </div>
                 </div>
         
                 <button onclick="saveConfig()">💾 Save Configuration</button>
@@ -207,7 +172,7 @@
                   <button type="submit">Add Employee</button>
                 </form>
               
-                <div id="toast" class="toast">Photo has been taken!</div>
+                
               
                 <!-- Camera modal -->
                 <div id="camera-modal" class="modal">
@@ -218,6 +183,7 @@
                     <button id="capture">Capture Photo</button>
                   </div>
                 </div>
+
               
                 <!-- Upload modal -->
                 <div id="upload-modal" class="modal">
@@ -264,20 +230,53 @@
             
             
             <div id="exportTimekeeping" class="tab-content">
-                <h2>📊 Export timekeeping data</h2>
-            
-                <!-- Khung chọn ngày -->
+                <h2>📊 Export Timekeeping Data</h2>
+                
                 <label for="exportDate">📅 Select date:</label>
                 <input type="date" id="exportDate" name="exportDate" required />
-            
-                <!-- Animation Loading Hidden Initially -->
+                
                 <div id="exportAnimation" class="export-animation hidden">
                     <img src="https://i.gifer.com/VAyR.gif" alt="Loading..." />
                 </div>
-            
-                <button onclick="exportTimekeeping()">🚀 Bắt đầu xuất dữ liệu</button>
-            
+                
+                <button id="toggleDetailBtn" onclick="toggleTimekeeping()">📂 View Details</button>
+                <button id="downloadBtn" onclick="downloadExcel()" >📥 Export to Excel</button>
+                
                 <p id="exportStatus"></p>
+                
+                <div id="tableContainer"></div>
+            </div>
+        
+            <div id="overlay" class="overlay"></div>
+
+
+            <div id="deletePerson" class="tab-content">
+                <h2>🗑️ Delete Employee</h2>
+                <p>Select an employee to delete:</p>
+                
+                <select id="personListSelect">
+                  <!-- Các item sẽ được thêm vào ở đây thông qua JS -->
+                </select>
+                
+                <button onclick="deleteEmployee()">Delete Employee</button>
+                
+                <div id="loading-overlay2" style="
+                    display: none;
+                    position: fixed;
+                    top: 0; left: 0;
+                    width: 100vw; height: 100vh;
+                    background-color: rgba(0,0,0,0.6);
+                    z-index: 9999;
+                    justify-content: center;
+                    align-items: center;
+                    color: white;
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    ">
+                    ⏳ Deleting, please wait...
+                </div>
+                
+                
             </div>
             
             
@@ -300,5 +299,7 @@
 
     </script>
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 </body>
 </html>

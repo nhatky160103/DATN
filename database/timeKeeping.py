@@ -1,9 +1,23 @@
 import os
 from datetime import datetime
-from .firebase import get_data, save_data
 import pandas as pd
 from firebase_admin import db
 
+
+
+# Lấy dữ liệu từ Firebase
+def get_data(bucket_name):
+    ref = db.reference(bucket_name)
+    data = ref.get()
+    return data
+
+# Lưu dữ liệu vào Firebase
+def save_data(bucket_name, data):
+    ref = db.reference(bucket_name)
+    ref.update(data)
+    print("Data updated in Firebase")
+
+    
 def create_daily_timekeeping(bucket_name, date=None):
 
     if date is None:
@@ -130,6 +144,9 @@ def process_check_in_out(bucket_name, employee_id, timestamp=None):
     return "check_out"
 
 
+
+
+
 def export_to_excel(bucket_name, date):
     # Path to node Timekeeping/YYYY-MM-DD
     timekeeping_data = get_data(f"{bucket_name}/Timekeeping/{date}")
@@ -158,11 +175,7 @@ def export_to_excel(bucket_name, date):
 
     # Create DataFrame from data
     df = pd.DataFrame(export_data)
-
-    output_file = f'{bucket_name}_{date}.xlsx'
-    df.to_excel(output_file, index=False)
-    print(f"Exported timekeeping data for {date} to {output_file}")
-    return True
+    return df
 
 if __name__ == "__main__":
 

@@ -33,4 +33,5 @@ datasets/
 dataset/
 data/
 local_embeddings/
+voxceleb_resnet221_LM/
 

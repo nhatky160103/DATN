@@ -8,11 +8,13 @@ import cloudinary.uploader
 import requests
 from pathlib import Path
 import time
+import os
+from glob import glob
 
 
 from .infer_image import  transform_image
 from .utils import get_recogn_model, device, mtcnn
-from database.firebase import get_data
+from database.firebase import get_data, delete_person, add_person, get_person_ids_from_bucket
 from .blazeFace import detect_face_and_nose
 
 
@@ -63,6 +65,9 @@ class EmbeddingManager:
             invalidate=True
         )
         print("☁️ Uploaded embeddings and metadata to Cloudinary (cache invalidated)")
+    def load_person_ids(self):
+        person_list = get_person_ids_from_bucket(self.bucket_name)
+        return person_list
 
     def load(self, load_local: bool = False):
         """
@@ -118,7 +123,9 @@ class EmbeddingManager:
                 print(f"❌ Local load failed too: {le}")
                 return None, None, None
 
-    def add_employee(self, person_id):
+    def add_employee(self, UPLOAD_FOLDER, name, age, gender, salary, email, year):
+        person_id = add_person(self.bucket_name, UPLOAD_FOLDER, name, age, gender, salary, email, year)
+
         print(f"➕ Adding new employee: {person_id}")
 
         embeddings, image2class, index2class = self.load()
@@ -129,21 +136,46 @@ class EmbeddingManager:
 
         recognition_model = get_recogn_model()
 
-        person_data = get_data(f"{self.bucket_name}/Employees/{person_id}")
-        image_urls = person_data.get("images", []) if person_data else []
-        if not image_urls:
-            print(f"⚠️ No images found for {person_id}")
+        # ---------- Bước 1: Lấy ảnh ----------
+        images = []
+        local_image_paths = glob(os.path.join(UPLOAD_FOLDER, "*"))
+
+        if local_image_paths:
+            print(f"📂 Found {len(local_image_paths)} local images in {UPLOAD_FOLDER}")
+            for img_path in local_image_paths:
+                try:
+                    image = Image.open(img_path).convert("RGB")
+                    images.append(image)
+                except Exception as e:
+                    print(f"❌ Error loading local image {img_path}: {e}")
+        else:
+            print(f"🌐 No local images found, loading images from Firebase...")
+            person_data = get_data(f"{self.bucket_name}/Employees/{person_id}")
+            image_urls = person_data.get("images", []) if person_data else []
+            if not image_urls:
+                print(f"⚠️ No images found for {person_id}")
+                return
+            for url in image_urls:
+                try:
+                    response = requests.get(url)
+                    response.raise_for_status()
+                    image = Image.open(BytesIO(response.content)).convert("RGB")
+                    images.append(image)
+                except Exception as e:
+                    print(f"❌ Error loading image from URL {url}: {e}")
+
+        # Nếu không có ảnh thì dừng
+        if not images:
+            print(f"❌ No valid images loaded for {person_id}")
             return
 
+        # ---------- Bước 2: Xử lý ảnh ----------
         aligned = []
         image_index = len(image2class)
         class_index = max(index2class.keys(), default=-1) + 1
 
-        for url in image_urls:
+        for image in images:
             try:
-                response = requests.get(url)
-                response.raise_for_status()
-                image = Image.open(BytesIO(response.content)).convert("RGB")
                 x_aligned = mtcnn(image)
                 if x_aligned is not None:
                     x_aligned = transform_image(x_aligned)
@@ -155,16 +187,18 @@ class EmbeddingManager:
                         x_aligned = transform_image(face_crop)
                     else:
                         x_aligned = transform_image(image)
+
                 aligned.append(x_aligned)
                 image2class[image_index] = class_index
                 image_index += 1
             except Exception as e:
-                print(f"❌ Error processing image {url}: {e}")
+                print(f"❌ Error processing image: {e}")
 
         if not aligned:
             print(f"❌ No valid images processed for {person_id}")
             return
 
+        # ---------- Bước 3: Tính embedding ----------
         batch = torch.cat(aligned, dim=0).to(device)
         with torch.no_grad():
             new_embeddings = recognition_model(batch).detach().cpu().numpy()
@@ -172,107 +206,68 @@ class EmbeddingManager:
         embeddings = np.vstack([embeddings, new_embeddings])
         index2class[class_index] = person_id
 
+        # ---------- Bước 4: Lưu ----------
         self.save_local(embeddings, image2class, index2class)
         self.upload_to_cloudinary(embeddings, image2class, index2class)
+
         print(f"✅ {person_id} added successfully with {len(new_embeddings)} embeddings")
         return embeddings, image2class, index2class
 
 
+    def delete_employee(self, person_id):
+        print(f"➖ Deleting employee: {person_id}")
 
-def create_data_embeddings(bucket_name, batch_size: int = 32):
-    # Tải mô hình nhận dạng
-    recognition_model = get_recogn_model()
-    # Lấy dữ liệu employees từ Firebase hoặc từ nơi nào đó
-    employees_data = get_data(f'{bucket_name}/Employees')
-    if not employees_data:
-        print("No employees found in Employees bucket!")
-        return None, None, None
+          # Xóa luôn dữ liệu trên Firebase và Cloudinary
+        delete_person(self.bucket_name, person_id)
 
-    aligned = []
-    image2class = {}
-    index2class = {}
-    image_index = 0
-    class_index = 0
+        # Load embeddings và metadata
+        embeddings, image2class, index2class = self.load()
+        if embeddings is None:
+            print("❌ Cannot load embeddings and metadata.")
+            return False
 
-    print("🔍 Fetching data from Firebase Realtime Database (Employees bucket)")
-    total_images = sum(len(employee_data.get("images", [])) for employee_data in employees_data.values())
-    print(f"📂 Total images: {total_images}")
-    print(f"📦 Batch size: {batch_size}")
+        # Tìm class_index tương ứng với person_id
+        class_indices_to_delete = [idx for idx, pid in index2class.items() if pid == person_id]
+        if not class_indices_to_delete:
+            print(f"⚠️ Person ID {person_id} not found in metadata.")
+            return False
 
-    progress_bar = tqdm(total=total_images, desc="Processing images")
-    
-    for employee_id, employee_data in employees_data.items():
-        image_urls = employee_data.get("images", [])
-        if not image_urls:
-            continue
+        class_index_to_delete = class_indices_to_delete[0]
 
-        index2class[class_index] = employee_id
+        # Xác định image indices cần giữ lại
+        image_indices_to_keep = [img_idx for img_idx, cls_idx in image2class.items() if cls_idx != class_index_to_delete]
 
-        for url in image_urls:
-            try:
-                response = requests.get(url)
-                if response.status_code != 200:
-                    continue
+        if len(image_indices_to_keep) == len(image2class):
+            print(f"⚠️ No images found for person {person_id} to delete.")
+            return False
 
-                image = Image.open(BytesIO(response.content)).convert("RGB")
-                x_aligned = mtcnn(image)  # Dùng MTCNN để căn chỉnh khuôn mặt
-                image2class[image_index] = class_index
+        # Backup image2class cũ
+        old_image2class = image2class.copy()
 
-                if x_aligned is not None:
-                    x_aligned = transform_image(x_aligned)
-                    aligned.append(x_aligned)
-                else:
-                    face, center_point, prob = detect_face_and_nose(image)
-                    if face is not None and prob > 0.7:
-                        x1, y1, x2, y2 = map(int, face)
-                        face = image.crop(x1, y1, x2, y2)
-                        x_aligned = transform_image(face)
-                    else:
-                        x_aligned = transform_image(image)
+        # Cập nhật embeddings
+        embeddings = embeddings[image_indices_to_keep]
 
-                    aligned.append(x_aligned)
-                
-                image_index += 1
+        # Rebuild image2class
+        new_image2class = {}
+        for new_idx, old_idx in enumerate(image_indices_to_keep):
+            if old_idx in old_image2class:
+                new_image2class[new_idx] = old_image2class[old_idx]
 
-                if len(aligned) >= batch_size:
-                    batch = torch.cat(aligned[:batch_size], dim=0).to(device)
-                    with torch.no_grad():
-                        embeddings_batch = recognition_model(batch).detach().cpu().numpy()
-                    embeddings = embeddings_batch if 'embeddings' not in locals() else np.vstack((embeddings, embeddings_batch))
-                    aligned = aligned[batch_size:]
+        # Xóa person_id khỏi index2class
+        del index2class[class_index_to_delete]
 
-            except Exception as e:
-                continue
-            finally:
-                progress_bar.update(1)
+        # Save lại local và upload lên cloud
+        self.save_local(embeddings, new_image2class, index2class)
+        self.upload_to_cloudinary(embeddings, new_image2class, index2class)
 
-        class_index += 1
-
-    progress_bar.close()
-    
-    # Xử lý các ảnh còn lại
-    if aligned:
-        batch = torch.cat(aligned, dim=0).to(device)
-        with torch.no_grad():
-            embeddings_batch = recognition_model(batch).detach().cpu().numpy()
-        embeddings = embeddings_batch if 'embeddings' not in locals() else np.vstack((embeddings, embeddings_batch))
-
-    if 'embeddings' not in locals():
-        print("❌ No valid embeddings created!")
-        return None
-
-    # Lúc này bạn có thể lưu embeddings & metadata vào Cloudinary và local
-    manager = EmbeddingManager(bucket_name)
-    manager.save_local(embeddings, image2class, index2class)
-    manager.upload_to_cloudinary(embeddings, image2class, index2class)
-
-    return embeddings, image2class, index2class
+        print(f"✅ Deleted {person_id} successfully.")
+        return embeddings, new_image2class, index2class
 
 
 if __name__ == '__main__':
     
-    # create_data_embeddings('Hust', 'ms1mv3_arcface', 'r100')
-    manager = EmbeddingManager('Hust')
+    # create_data_embeddings('Neu')
+    manager = EmbeddingManager('Huce')
     embeddings, image2class, index2class = manager.load(load_local = True)
     if embeddings is None:
         print("❌ Failed to load embeddings!")
@@ -280,6 +275,7 @@ if __name__ == '__main__':
         print(f"✅ Loaded {embeddings.shape[0]} embeddings")
         print(f"Image to class mapping: {image2class}")
         print(f"Index to class mapping: {index2class}")
+    # manager.delete_employee('000010')
 
 
 

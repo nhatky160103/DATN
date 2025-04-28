@@ -2,13 +2,18 @@ import os
 import firebase_admin
 from firebase_admin import credentials, db
 import time
+from datetime import datetime
 
-from .cloudinary import  upload_folder_to_cloudinary, delete_folder_from_cloudinary
+from .timeKeeping import create_daily_timekeeping
+from .cloudinary import  upload_folder_to_cloudinary, delete_folder_from_cloudinary, cloudinary_new_bucket
 
 cred = credentials.Certificate("database/ServiceAccountKey.json")
 firebase_admin.initialize_app(cred, {
     'databaseURL': "https://facerecognition-905ff-default-rtdb.firebaseio.com/"
 })
+
+
+
 
 
 def generate_numeric_id(bucket_name):
@@ -36,11 +41,56 @@ def save_data(bucket_name, data):
     print("Data updated in Firebase")
 
 
+def update_today_timekeeping(bucket_name, person_id):
+    today = datetime.now().strftime("%Y-%m-%d")
+    ref = db.reference(f"{bucket_name}/Timekeeping/{today}")
+
+    # Nếu bảng hôm nay tồn tại thì update thêm người mới
+    if ref.get() is not None:
+        employee_data = {
+            "check_in": "",
+            "check_out": "",
+            "working_hours": 0.0,
+            "attendance_time": 0.0,
+            "attendance_in": "",
+            "attendance_out": "",
+            "comes_late": 0.0,
+            "leaves_early": 0.0,
+            "overtime": 0.0
+        }
+        ref.child(person_id).set(employee_data)
+        print(f"✅ Added new employee {person_id} to today's timekeeping {today}")
+    else:
+        # Nếu hôm nay chưa có bảng → tạo lại cả bảng mới luôn
+        create_daily_timekeeping(bucket_name, date=today)
+
+
+
+def delete_from_today_timekeeping(bucket_name, person_id):
+    today = datetime.now().strftime("%Y-%m-%d")
+    ref = db.reference(f"{bucket_name}/Timekeeping/{today}")
+
+    # Nếu bảng hôm nay tồn tại
+    if ref.get() is not None:
+        person_ref = ref.child(person_id)
+        if person_ref.get() is not None:
+            person_ref.delete()
+            print(f"🗑️ Deleted {person_id} from today's timekeeping ({today})")
+            return True
+        else:
+            print(f"⚠️ Person {person_id} not found in today's timekeeping ({today})")
+            return False
+    else:
+        print(f"⚠️ Timekeeping table for {today} does not exist.")
+        return False
+
+
+
 def add_person(bucket_name, folder_path, name: str, age: int, gender: str = 'Male', salary: int = 0, email: str = None, year: int = 1):
     person_id = generate_numeric_id(bucket_name)
 
     images = upload_folder_to_cloudinary(bucket_name, person_id, folder_path)
-
+    update_today_timekeeping(bucket_name, person_id)
     person_data = {
         person_id: {
             "name": name,
@@ -59,20 +109,6 @@ def add_person(bucket_name, folder_path, name: str, age: int, gender: str = 'Mal
     print(f"✅ Added person with ID {person_id}")
     return person_id
 
-# Cập nhật thông tin người
-def update_person(bucket_name, person_id, **kwargs):
-    ref = db.reference(f"{bucket_name}/{person_id}")
-    data = ref.get()
-
-    if data is None:
-        print(f"Person with ID {person_id} not found!")
-        return False
-
-    updated_data = {key: value for key, value in kwargs.items() if key in data}
-    ref.update(updated_data)
-    print(f"Updated person with ID {person_id}")
-    return True
-
 # Xóa người
 def delete_person(bucket_name, person_id):
     ref = db.reference(f"{bucket_name}/Employees/{person_id}")
@@ -82,6 +118,7 @@ def delete_person(bucket_name, person_id):
 
     ref.delete()
     delete_folder_from_cloudinary(bucket_name, person_id)
+    delete_from_today_timekeeping(bucket_name, person_id)
     print(f"Deleted person with ID {person_id}")
     return True
 
@@ -142,7 +179,7 @@ def create_new_bucket(bucket_name: str, config_data: dict = None):
         print(f"⚠️ Bucket '{bucket_name}' already exists.")
         return False
 
-    # Tạo cấu trúc bucket cơ bản
+    cloudinary_new_bucket(bucket_name)
     db.reference(f"{bucket_name}/Employees").set({})
     print(f"✅ Created new bucket: '{bucket_name}' with empty Employees list.")
 
@@ -155,8 +192,19 @@ def create_new_bucket(bucket_name: str, config_data: dict = None):
 
 
 
+def get_person_ids_from_bucket(bucket_name):
+    # Lấy dữ liệu nhân viên từ Firebase
+    ref = db.reference(f"{bucket_name}/Employees")
+    data = ref.get()
 
-    
+    # Nếu không có dữ liệu thì trả về danh sách rỗng
+    if data is None:
+        print(f"⚠️ No employees found in bucket '{bucket_name}'")
+        return []
+
+    # Lấy danh sách các person_id từ dữ liệu
+    person_ids = list(data.keys())
+    return person_ids
     
 if __name__ =="__main__":
     data = load_config_from_bucket('Hust')

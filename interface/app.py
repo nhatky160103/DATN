@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from infer.get_embedding import EmbeddingManager
 from infer.infer_camera import infer_camera, check_validation
 from database.timeKeeping import create_daily_timekeeping, export_to_excel, process_check_in_out
-from database.firebase import get_all_bucket_names, load_config_from_bucket, add_config_to_bucket
+from database.firebase import get_all_bucket_names, load_config_from_bucket, add_config_to_bucket, create_new_bucket
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -63,13 +63,6 @@ def get_or_set_default_bucket():
             session['selected_bucket'] = bucket
     return bucket
 
-@app.route('/')
-def index():
-    buckets = get_all_bucket_names()
-    selected_bucket = get_or_set_default_bucket()
-    return render_template('index.html', buckets=buckets, selected_bucket=selected_bucket)
-    return render_template('index.html')
-
 @app.route('/set_selected_bucket', methods=['POST'])
 def set_selected_bucket():
     data = request.get_json()
@@ -78,6 +71,15 @@ def set_selected_bucket():
         session['selected_bucket'] = selected_bucket
     print(f"Selected bucket: {selected_bucket}")
     return jsonify({'status': 'success', 'selected_bucket': selected_bucket})
+
+
+@app.route('/')
+def index():
+    buckets = get_all_bucket_names()
+    selected_bucket = get_or_set_default_bucket()
+    return render_template('index.html', buckets=buckets, selected_bucket=selected_bucket)
+    return render_template('index.html')
+
 
 @app.route('/dashboard')
 def dashboard():
@@ -106,8 +108,7 @@ def add_member():
             photo.save(filepath)
             print(f"📸 Photo {idx + 1} saved at: {filepath}")
 
-    person_id = add_person(bucket_name, UPLOAD_FOLDER, name, age, gender, salary, email, year)
-    embeddings, image2class, index2class =  manager.add_employee(person_id)
+    embeddings, image2class, index2class =  manager.add_employee(UPLOAD_FOLDER, name, age, gender, salary, email, year)
     if embeddings is not None:
         app.config['embeddings'][bucket_name] = embeddings
         app.config['image2class'][bucket_name] = image2class
@@ -131,30 +132,61 @@ def handle_create_embedding():
         print("Error:", e)
         return jsonify({"success": False, "message": "Error during embedding creation."}), 500
 
+
+
 @app.route("/export-timekeeping", methods=["POST"])
 def handle_export_timekeeping():
+    global latest_export_df
+
     data = request.get_json()
-    selected_date = data.get('date')  
+    selected_date = data.get('date')
     selected_bucket = get_or_set_default_bucket()
+    
     try:
-        export_to_excel(selected_bucket, selected_date)
-        return jsonify({"message": f"✅ Data exported for bucket '{selected_bucket}' on {selected_date}."})
+        df = export_to_excel(selected_bucket, selected_date)
+        if df is None or df.empty:
+            return jsonify({"success": False, "message": "❗ No timekeeping data found."}), 404
+
+        latest_export_df = df  # lưu lại cho việc download sau
+
+        data_json = df.to_dict(orient='records')
+        return jsonify({"success": True, "data": data_json})
     except Exception as e:
-        return jsonify({"message": f"❌ Error: {str(e)}"}), 500
+        return jsonify({"success": False, "message": f"❌ Error: {str(e)}"}), 500
+
+
+from flask import send_file
+import io
+
+@app.route("/download-excel", methods=["GET"])
+def download_excel():
+    global latest_export_df
+
+    if latest_export_df is None:
+        return jsonify({"success": False, "message": "No exported data available."}), 400
+
+    # Tạo tệp Excel trong bộ nhớ (không lưu vào đĩa)
+    output = io.BytesIO()
+    latest_export_df.to_excel(output, index=False)
+    output.seek(0)
+
+    # Gửi tệp Excel trực tiếp cho client
+    return send_file(output, as_attachment=True, download_name="timekeeping.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
 
 @app.route('/save_config', methods=['POST'])
 def save_config():
     try:
         config_data = request.get_json() or get_default_config()
         bucket = get_or_set_default_bucket()
+        print("hahahahahahhahah:", bucket)
         app.config['config'][bucket] = config_data
         add_config_to_bucket(bucket, config_data)
 
         return jsonify({"message": "Configuration saved successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
-
 
 camera_data = queue.Queue()
 
@@ -191,6 +223,59 @@ def get_results():
         })
     else:
         return jsonify({"status": "no_results", "message": "No results available yet"})
+
+
+
+@app.route('/get_person_ids', methods=['GET'])
+def get_person_ids():
+    try:
+        bucket_name = get_or_set_default_bucket()
+        manager = EmbeddingManager(bucket_name)
+        person_ids = manager.load_person_ids()
+        return jsonify(person_ids)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# API để xóa nhân viên theo person_id
+@app.route('/delete_person/<person_id>', methods=['DELETE'])
+def delete_person(person_id):
+    try:
+        bucket_name = get_or_set_default_bucket()
+        manager = EmbeddingManager(bucket_name)
+        embeddings, image2class, index2class = manager.delete_employee(person_id)
+
+        if embeddings is not None:
+            app.config['embeddings'][bucket_name] = embeddings
+            app.config['image2class'][bucket_name] = image2class
+            app.config['index2class'][bucket_name] = index2class
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "error": "Failed to delete employee."}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/create_bucket", methods=["POST"])
+def create_bucket():
+    data = request.get_json()
+    bucket_name = data.get('bucket_name')
+    config_data = get_default_config()
+
+    if not bucket_name:
+        return jsonify({"success": False, "message": "Bucket name is required."})
+
+    # Gọi hàm của bạn để tạo bucket + Employees + Embeddings
+    try:
+        created = create_new_bucket(bucket_name, config_data)
+    except Exception as e:
+        # Nếu có exception thì coi như thất bại
+        return jsonify({"success": False, "message": str(e)})
+
+    if created:
+        return jsonify({"success": True})
+    else:
+        # Hàm của bạn trả về False khi bucket đã có sẵn
+        return jsonify({"success": False, "message": f"Bucket '{bucket_name}' already exists or creation failed."})
 
 if __name__ == '__main__':
     app.run(debug=True)
