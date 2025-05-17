@@ -232,7 +232,19 @@ def delete_bucket(bucket_name):
     return False
     
 
+def get_employee_count(bucket_name):
+    """
+    Trả về số lượng nhân viên trong bucket (dựa vào node Employees).
+    """
+    ref = db.reference(f"{bucket_name}/Employees")
+    data = ref.get()
+    if not data:
+        return 0
+    return len(data)
+
+
 if __name__ =="__main__":
     # data = load_config_from_bucket('Hust')
     # print(data)
-    delete_bucket('Neu')
+    num_person = get_person_ids_from_bucket('Neu')
+    print(num_person)

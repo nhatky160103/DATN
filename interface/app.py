@@ -14,7 +14,8 @@ from database.firebase import (get_all_bucket_names,
                                add_config_to_bucket, 
                                create_new_bucket, 
                                delete_bucket, 
-                               get_logo_url)
+                               get_logo_url,
+                               get_employee_count)
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -301,6 +302,16 @@ def handle_delete_bucket():
         return jsonify({"success": True, "message": f"Bucket '{bucket_name}' deleted successfully."})
     else:
         return jsonify({"success": False, "message": f"Failed to delete bucket '{bucket_name}'."}), 500
+
+
+
+@app.route('/get_employee_count', methods=['GET'])
+def get_employee_count_api():
+    bucket_name = request.args.get('bucket_name') or get_or_set_default_bucket()
+    if not bucket_name:
+        return {'error': 'Missing bucket_name'}, 400
+    count = get_employee_count(bucket_name)
+    return {'count': count}
     
 if __name__ == '__main__':
     app.run(debug=True)

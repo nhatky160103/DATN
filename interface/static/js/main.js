@@ -165,7 +165,6 @@ function closeNewBucketModal() {
 }
 
 
-
 function createNewBucket() {
     const bucketName = document.getElementById('bucketNameInput').value.trim();
     const logoInput = document.getElementById('bucketLogoInput');

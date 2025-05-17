@@ -228,44 +228,6 @@ function saveConfig() {
 }
 
 
-function createEmbedding() {
-  const statusElement = document.getElementById("embeddingStatus");
-  statusElement.innerText = "Creating embeddings...";
-
-  statusElement.classList.add("loading");
-
-  fetch("/create-embedding", {
-      method: "POST", 
-      headers: {
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({}) 
-  })
-  .then(response => {
-      if (!response.ok) {
-          throw new Error('Failed to create embeddings');
-      }
-      return response.json();
-  })
-  .then(data => {
-      if (data.success) {
-          statusElement.innerText = "✅ Embeddings created successfully!";
-      } else {
-          statusElement.innerText = "❌ Failed to create embeddings.";
-      }
-      statusElement.classList.remove("loading");
-  })
-  .catch(error => {
-      console.error("Error:", error);
-      statusElement.innerText = "❌ Error occurred during embedding creation.";
-      // Xử lý lỗi và loại bỏ class loading nếu có lỗi
-      statusElement.classList.remove("loading");
-  });
-}
-
-
-
-
 
 let isTableVisible = false;
 let latestData = null;
@@ -521,4 +483,34 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
+});
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  const companyInfoBtn = document.getElementById('companyInfoBtn');
+  const employeeCountInfo = document.getElementById('employeeCountInfo');
+
+  companyInfoBtn.addEventListener('click', function() {
+    // Toggle hiển thị
+    if (employeeCountInfo.classList.contains('active')) {
+      employeeCountInfo.classList.remove('active');
+      return;
+    }
+    // Lấy bucket_name hiện tại từ profile
+    const currentBucket = document.querySelector('.profile span').textContent.trim();
+    fetch(`/get_employee_count?bucket_name=${encodeURIComponent(currentBucket)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (typeof data.count !== 'undefined') {
+          employeeCountInfo.textContent = `Employees: ${data.count}`;
+        } else {
+          employeeCountInfo.textContent = 'Error!';
+        }
+        employeeCountInfo.classList.add('active');
+      })
+      .catch(() => {
+        employeeCountInfo.textContent = 'Error!';
+        employeeCountInfo.classList.add('active');
+      });
+  });
 });

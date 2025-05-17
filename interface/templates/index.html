@@ -41,7 +41,7 @@
                 <span class="close-btn" onclick="closeNewBucketModal()">&times;</span>
                 <h2>Create New Bucket</h2>
                 <input type="text" id="bucketNameInput" placeholder="Enter bucket name">
-                <input type="file" id="bucketLogoInput" accept="image/*"> <!-- Thêm dòng này -->
+                <input type="file" id="bucketLogoInput" accept="image/*"> 
                 <button onclick="createNewBucket()">Create</button>
             </div>
         </div>
@@ -56,15 +56,6 @@
             </div>
         </div>
 
-        <!-- Modal upload logo -->
-        <div id="uploadLogoModal" class="modal hidden">
-            <div class="modal-content">
-                <span class="close-btn" onclick="closeUploadLogoModal()">&times;</span>
-                <h2>Upload Company Logo</h2>
-                <input type="file" id="logoFileInput" accept="image/*">
-                <button onclick="uploadLogo()">Upload</button>
-            </div>
-        </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
