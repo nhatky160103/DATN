@@ -1,12 +1,72 @@
+var notifications = [];
 
 function showToast(message, status = 'success') {
+  const toastContainer = document.getElementById('toastContainer');
   const toast = document.getElementById('toast');
+ 
+  toastContainer.classList.add('show');
+  toastContainer.style.display = 'block';
+
   toast.textContent = message;
+  notifications.push(message);
   toast.classList.add(status);
   setTimeout(() => {
     toast.classList.remove(status);
   }, 2000);
+
+  // Gọi lại renderNotifications khi đã sẵn sàng
+  if (typeof renderNotifications === 'function') {
+    renderNotifications();
+  }
 }
+
+var notificationBtn, notificationDropdown, notificationList, notificationBadge;
+
+function renderNotifications() {
+  notificationList.innerHTML = '';
+
+  if (notifications.length === 0) {
+    notificationList.innerHTML = '<li>No notifications</li>';
+    notificationBadge.style.display = 'none';
+    return;
+  }
+
+  notificationBadge.style.display = 'inline-block';
+  notificationBadge.textContent = notifications.length;
+
+  notifications.forEach((msg, idx) => {
+    const li = document.createElement('li');
+    li.textContent = msg;
+
+    li.addEventListener('click', () => {
+      alert(`${msg}`);
+      notifications.splice(idx, 1);
+      renderNotifications();
+    });
+
+    notificationList.appendChild(li);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  notificationBtn = document.getElementById('notificationBtn');
+  notificationDropdown = document.getElementById('notificationDropdown');
+  notificationList = document.getElementById('notificationList');
+  notificationBadge = document.getElementById('notificationBadge');
+
+  notificationBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    notificationDropdown.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', () => {
+    notificationDropdown.classList.add('hidden');
+  });
+
+  renderNotifications();
+});
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
   const openBtn = document.getElementById('open-modal-btn');
@@ -123,14 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-  // // Show toast message
-  // function showToast(message) {
-  //   toast.textContent = message;
-  //   toast.classList.add('show');
-  //   setTimeout(() => {
-  //     toast.classList.remove('show');
-  //   }, 2000);
-  // }
 });
 
 
@@ -221,23 +273,17 @@ let popupWindow = null;
 
 async function toggleTimekeeping() {
     const btnToggle = document.getElementById("toggleDetailBtn");
-    const statusText = document.getElementById("exportStatus");
-    const loadingAnim = document.getElementById("exportAnimation");
     const selectedDate = document.getElementById("exportDate").value;
     const overlay = document.getElementById("overlay");
 
     // Kiểm tra nếu chưa chọn ngày
     if (!selectedDate) {
-        setStatus("❗ Please select a date!", "error");
+        showToast("Please select a date!", "error");
         return;
     }
 
     if (!isTableVisible) {
         btnToggle.disabled = true;
-        btnToggle.innerText = "⏳ Loading...";
-        setStatus("");
-        loadingAnim.classList.remove("hidden");
-
         try {
             const response = await fetch("/export-timekeeping", {
                 method: "POST",
@@ -249,25 +295,21 @@ async function toggleTimekeeping() {
             if (result.success) {
                 latestData = result.data;
                 openPopupTable(latestData);
-                setStatus("✅ Data loaded successfully!", "success");
+                showToast("✅ Data loaded successfully!", "success");
                 overlay.classList.add("show");
-                btnToggle.innerText = "❌ Close Details";
                 isTableVisible = true;
             } else {
                 throw new Error(result.message || "❌ Error loading data!");
             }
         } catch (error) {
             console.error(error);
-            setStatus(error.message || "❌ Failed to load data!", "error");
+            showToast("Failed to load data!", "error");
         } finally {
             btnToggle.disabled = false;
-            loadingAnim.classList.add("hidden");
         }
     } else {
         closePopup();
         overlay.classList.remove("show");
-        btnToggle.innerText = "📂 View Details";
-        setStatus("");
         isTableVisible = false;
     }
 }
@@ -277,20 +319,21 @@ function openPopupTable(data) {
     popupWindow.className = 'popup-window';
     popupWindow.innerHTML = `
         <div class="popup-header">
-            <h3>Timekeeping Data</h3>
+            <h3>🕒 Timekeeping Data</h3>
             <button class="close-btn" onclick="closePopup()">Close</button>
         </div>
-        <table id="timekeepingTable">
-            <thead>
-                <tr id="tableHeader"></tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+        <div class="table-container">
+            <table id="timekeepingTable">
+                <thead><tr id="tableHeader"></tr></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
     `;
 
     document.body.appendChild(popupWindow);
     renderTable(data);
 }
+
 
 function closePopup() {
     if (popupWindow) {
@@ -299,7 +342,6 @@ function closePopup() {
     }
     document.getElementById("overlay").classList.remove("show");
     isTableVisible = false;
-    document.getElementById("toggleDetailBtn").innerText = "📂 View Details";
 }
 
 function renderTable(data) {
@@ -334,7 +376,7 @@ function renderTable(data) {
 async function downloadExcel() {
   const selectedDate = document.getElementById("exportDate").value;
   if (!selectedDate) {
-      setStatus("❗ Please select a date!", "error");
+      showToast("Please select a date!", "error");
       return;
   }
 
@@ -346,22 +388,15 @@ async function downloadExcel() {
       if (result) {
           // Dùng FileSaver.js để lưu tệp Excel
           saveAs(result, "timekeeping.xlsx");
-          setStatus("✅ Data exported successfully!", "success");
+          showToast("✅ Data exported successfully!", "success");
       } else {
-          throw new Error(result.message || "❌ Failed to export data.");
+          throw new Error(result.message || "Failed to export data.");
       }
   } catch (error) {
       console.error(error);
-      setStatus(error.message || "❌ Error exporting data!", "error");
+      showToast("Error exporting data!", "error");
   }
 }
-
-function setStatus(message, type = "info") {
-    const statusElement = document.getElementById("exportStatus");
-    statusElement.innerText = message;
-    statusElement.className = type;
-}
-
 
 
 function loadPersonList() {
@@ -381,11 +416,9 @@ function loadPersonList() {
 }
 
 
-
-
 function deleteEmployee() {
   const personId = document.getElementById('personListSelect').value;
-  const loadingOverlay = document.getElementById('loading-overlay2'); 
+  const loadingOverlay = document.getElementById('loading-overlay'); 
   const toast = document.querySelector('#toast2')
   if (!personId) {
       showToast('Please select employee', 'error');
@@ -424,3 +457,68 @@ function deleteEmployee() {
 
 
 window.onload = loadPersonList;
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Popup xác nhận xóa bucket
+  const showConfirmBtn = document.getElementById('showConfirmDeleteBtn');
+  const modal = document.getElementById('deleteBucketModal');
+  const closeModalBtn = document.getElementById('closeDeleteBucketModal');
+  const deleteBucketBtn = document.getElementById('deleteBucketBtn');
+  const confirmInput = document.getElementById('confirmBucketName');
+
+  if (showConfirmBtn && modal && closeModalBtn && deleteBucketBtn && confirmInput) {
+    showConfirmBtn.addEventListener('click', function() {
+      modal.style.display = 'flex';
+      confirmInput.value = '';
+      confirmInput.focus();
+    });
+
+    closeModalBtn.addEventListener('click', function() {
+      modal.style.display = 'none';
+    });
+
+    window.onclick = function(event) {
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    };
+
+    deleteBucketBtn.addEventListener('click', function() {
+      const input = confirmInput.value.trim();
+      const currentBucket = document.querySelector('.profile span').textContent.trim();
+      if (input !== currentBucket) {
+        showToast('Bucket name does not match. Please type the exact bucket name to confirm.', 'error');
+        return;
+      }
+      if (!confirm(`Are you sure you want to delete bucket "${currentBucket}"? This action cannot be undone!`)) {
+        return;
+      }
+
+      const loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) loadingOverlay.style.display = 'flex';
+      
+      fetch('/delete_bucket', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({bucket_name: currentBucket})
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        if (data.success) {
+          showToast(data.message, 'success');
+          modal.style.display = 'none';
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
+        } else {
+          showToast(data.message || 'Failed to delete bucket!', 'error');
+        }
+      })
+      .catch(err => {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        showToast('Error deleting bucket!', 'error');
+      });
+    });
+  }
+});

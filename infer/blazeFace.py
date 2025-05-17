@@ -6,6 +6,7 @@ mp_face_detection = mp.solutions.face_detection
 
 
 def detect_face_and_nose(frame):
+
     with mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5) as face_detection:
         image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = face_detection.process(image_rgb)
@@ -32,3 +33,4 @@ def detect_face_and_nose(frame):
                 return (x1, y1, x2, y2), (nose_x, nose_y), prob
 
     return None, None, None
+

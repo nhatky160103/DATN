@@ -35,6 +35,7 @@ class PartialFC_V2(torch.nn.Module):
         num_classes: int,
         sample_rate: float = 1.0,
         fp16: bool = False,
+        use_focal_loss: bool = False, focal_gamma: float = 2.0
     ):
         """
         Paramenters:
@@ -52,8 +53,11 @@ class PartialFC_V2(torch.nn.Module):
         ), "must initialize distributed before create this"
         self.rank = distributed.get_rank()
         self.world_size = distributed.get_world_size()
+        if use_focal_loss:
+            self.dist_cross_entropy = DistFocalLoss(gamma=focal_gamma)
+        else:
+            self.dist_cross_entropy = DistCrossEntropy()
 
-        self.dist_cross_entropy = DistCrossEntropy()
         self.embedding_size = embedding_size
         self.sample_rate: float = sample_rate
         self.fp16 = fp16
@@ -225,6 +229,60 @@ class DistCrossEntropy(torch.nn.Module):
 
     def forward(self, logit_part, label_part):
         return DistCrossEntropyFunc.apply(logit_part, label_part)
+
+
+class DistFocalLossFunc(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, logits: torch.Tensor, label: torch.Tensor, gamma: float = 2.0):
+        batch_size = logits.size(0)
+
+        max_logits, _ = torch.max(logits, dim=1, keepdim=True)
+        distributed.all_reduce(max_logits, distributed.ReduceOp.MAX)
+        logits.sub_(max_logits)
+        logits.exp_()
+        sum_logits_exp = torch.sum(logits, dim=1, keepdim=True)
+        distributed.all_reduce(sum_logits_exp, distributed.ReduceOp.SUM)
+        probs = logits.div_(sum_logits_exp)  # softmax
+
+        index = torch.where(label != -1)[0]
+        p_t = probs[index].gather(1, label[index])  # shape (N, 1)
+        loss = -((1 - p_t) ** gamma) * p_t.log().clamp_min(1e-8)
+
+        total_loss = torch.zeros_like(loss).sum()
+        total_loss += loss.sum()
+        distributed.all_reduce(total_loss, distributed.ReduceOp.SUM)
+
+        ctx.save_for_backward(index, probs, label)
+        ctx.gamma = gamma
+        return total_loss / batch_size
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        index, probs, label = ctx.saved_tensors
+        gamma = ctx.gamma
+        batch_size = probs.size(0)
+
+        one_hot = torch.zeros(index.size(0), probs.size(1), device=probs.device)
+        one_hot.scatter_(1, label[index], 1)
+
+        p_t = probs[index].gather(1, label[index]).clamp_min(1e-8)
+        grad = -gamma * ((1 - p_t) ** (gamma - 1)) * p_t.log() * one_hot
+        grad += -((1 - p_t) ** gamma) * one_hot
+        grad_full = torch.zeros_like(probs)
+        grad_full[index] = grad
+        grad_full /= batch_size
+        return grad_full * grad_output.item(), None, None
+
+
+class DistFocalLoss(torch.nn.Module):
+    def __init__(self, gamma: float = 2.0):
+        super(DistFocalLoss, self).__init__()
+        self.gamma = gamma
+
+    def forward(self, logits, labels):
+        return DistFocalLossFunc.apply(logits, labels, self.gamma)
+
+
 
 
 class AllGatherFunc(torch.autograd.Function):

@@ -17,6 +17,8 @@ class ArcFaceORT:
         self.model_path = model_path
         # providers = None will use available provider, for onnxruntime-gpu it will be "CUDAExecutionProvider"
         self.providers = ['CPUExecutionProvider'] if cpu else None
+        # self.providers = ['CUDAExecutionProvider']
+
 
     #input_size is (w,h), return error message, return None if success
     def check(self, track='cfat', test_img = None):
