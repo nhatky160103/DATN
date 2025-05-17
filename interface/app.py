@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file, session, redirect, Response
+from flask import Flask, render_template, request, jsonify, send_file, session, Response
 import os, cv2, yaml, shutil, queue
 from werkzeug.utils import secure_filename
 import time
@@ -6,8 +6,15 @@ from datetime import datetime, timedelta
 
 from infer.get_embedding import EmbeddingManager
 from infer.infer_camera import infer_camera, check_validation
-from database.timeKeeping import create_daily_timekeeping, export_to_excel, process_check_in_out
-from database.firebase import get_all_bucket_names, load_config_from_bucket, add_config_to_bucket, create_new_bucket
+from database.timeKeeping import (create_daily_timekeeping,
+                                   export_to_excel, 
+                                   process_check_in_out)
+from database.firebase import (get_all_bucket_names, 
+                               load_config_from_bucket, 
+                               add_config_to_bucket, 
+                               create_new_bucket, 
+                               delete_bucket, 
+                               get_logo_url)
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -85,7 +92,8 @@ def index():
 def dashboard():
     bucket_name = get_or_set_default_bucket()
     config_data = load_config_from_bucket(bucket_name) or get_default_config()
-    return render_template('dashboard.html', config=config_data, bucket_name=bucket_name)
+    logo_url = get_logo_url(bucket_name)
+    return render_template('dashboard2.html', config=config_data, bucket_name=bucket_name, logo_url=logo_url)
 
 @app.route('/add_member', methods=['POST'])
 def add_member():
@@ -119,19 +127,6 @@ def add_member():
 
     shutil.rmtree(UPLOAD_FOLDER)
     return jsonify({"status": "success", "saved_photos": UPLOAD_FOLDER})
-
-@app.route('/create-embedding', methods=['POST'])
-def handle_create_embedding():
-    try:
-        selected_bucket = get_or_set_default_bucket()
-        embeddings, image2class, index2class = create_data_embeddings(selected_bucket)
-        if embeddings is None or embeddings.size == 0:
-            return jsonify({"success": False, "message": "No selected bucket in session."}), 400
-        return jsonify({"success": True})
-    except Exception as e:
-        print("Error:", e)
-        return jsonify({"success": False, "message": "Error during embedding creation."}), 500
-
 
 
 @app.route("/export-timekeeping", methods=["POST"])
@@ -180,7 +175,6 @@ def save_config():
     try:
         config_data = request.get_json() or get_default_config()
         bucket = get_or_set_default_bucket()
-        print("hahahahahahhahah:", bucket)
         app.config['config'][bucket] = config_data
         add_config_to_bucket(bucket, config_data)
 
@@ -257,25 +251,56 @@ def delete_person(person_id):
 
 @app.route("/create_bucket", methods=["POST"])
 def create_bucket():
-    data = request.get_json()
-    bucket_name = data.get('bucket_name')
-    config_data = get_default_config()
+    # Nếu client gửi form-data (có file), dùng request.form và request.files
+    if request.content_type and request.content_type.startswith('multipart/form-data'):
+        bucket_name = request.form.get('bucket_name')
+        logo_file = request.files.get('logo')
+        config_data = get_default_config()
+        logo_path = None
+        if logo_file:
+            temp_dir = os.path.join('static', 'uploads')
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_path = os.path.join(temp_dir, secure_filename(logo_file.filename))
+            logo_file.save(temp_path)
+            logo_path = temp_path
+    else:
+        # Nếu client gửi JSON như cũ
+        data = request.get_json()
+        bucket_name = data.get('bucket_name')
+        config_data = get_default_config()
+        logo_path = None
 
     if not bucket_name:
         return jsonify({"success": False, "message": "Bucket name is required."})
 
-    # Gọi hàm của bạn để tạo bucket + Employees + Embeddings
     try:
-        created = create_new_bucket(bucket_name, config_data)
+        created = create_new_bucket(bucket_name, config_data, logo_path=logo_path)
+        if logo_path:
+            os.remove(logo_path)
     except Exception as e:
-        # Nếu có exception thì coi như thất bại
+        if logo_path:
+            try: os.remove(logo_path)
+            except: pass
         return jsonify({"success": False, "message": str(e)})
 
     if created:
         return jsonify({"success": True})
     else:
-        # Hàm của bạn trả về False khi bucket đã có sẵn
         return jsonify({"success": False, "message": f"Bucket '{bucket_name}' already exists or creation failed."})
 
+
+@app.route('/delete_bucket', methods=['POST'])
+def handle_delete_bucket():
+    data = request.get_json()
+    bucket_name = data.get('bucket_name')
+    if not bucket_name:
+        return jsonify({"success": False, "message": "Missing bucket_name"}), 400
+
+    result = delete_bucket(bucket_name)
+    if result:
+        return jsonify({"success": True, "message": f"Bucket '{bucket_name}' deleted successfully."})
+    else:
+        return jsonify({"success": False, "message": f"Failed to delete bucket '{bucket_name}'."}), 500
+    
 if __name__ == '__main__':
     app.run(debug=True)

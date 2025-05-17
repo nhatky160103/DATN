@@ -24,7 +24,7 @@ def get_recogn_model(model_name: str = 'ms1mv3_arcface', backbone_name: str = 'r
             pretrained_path = f"models/Recognition/Arcface_torch/weights/{model_name}_{backbone_name}_fp16_0.1/backbone.pth"
         else:
             pretrained_path = f"models/Recognition/Arcface_torch/weights/{model_name}_{backbone_name}_fp16/backbone.pth"
-
+      
         state_dict = torch.load(pretrained_path, map_location=device)
         model = get_model(backbone_name, fp16=True)
 
@@ -50,4 +50,8 @@ def get_recogn_model(model_name: str = 'ms1mv3_arcface', backbone_name: str = 'r
             print(f"❌ Fallback model failed too: {fe}")
             return None
 
+
+if __name__ == "__main__":
+    model = get_recogn_model('casia_webface_cmd', 'r50')
+    print(model)
 

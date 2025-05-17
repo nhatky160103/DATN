@@ -85,8 +85,6 @@ def process_check_in_out(bucket_name, employee_id, timestamp=None):
 
     date = timestamp.split(" ")[0]
 
-
-
     if employee_id == "UNKNOWN":
         unknown_ref = db.reference(f"{bucket_name}/Timekeeping/{date}/UNKNOWN")
         unknown_ref.push(timestamp)

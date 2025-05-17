@@ -32,21 +32,7 @@
             </div>
         </div>
 
-        <div id="loading-overlay" style="
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            background-color: rgba(0,0,0,0.6);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 1.5rem;
-            font-weight: bold;
-            ">
-            ⏳ Uploading, please wait...
-        </div>
+        <div id="loading-overlay" >⏳ Uploading, please wait...</div>
         <div id="toast" class="toast hidden"></div>
 
         <!-- Modal nhập bucket -->
@@ -55,6 +41,7 @@
                 <span class="close-btn" onclick="closeNewBucketModal()">&times;</span>
                 <h2>Create New Bucket</h2>
                 <input type="text" id="bucketNameInput" placeholder="Enter bucket name">
+                <input type="file" id="bucketLogoInput" accept="image/*"> <!-- Thêm dòng này -->
                 <button onclick="createNewBucket()">Create</button>
             </div>
         </div>
@@ -66,6 +53,16 @@
                 <span class="close-btn" onclick="closeCamera()">&times;</span>
                 <div id="loadingSpinner" class="spinner"></div>
                 <img id="cameraFeed" />
+            </div>
+        </div>
+
+        <!-- Modal upload logo -->
+        <div id="uploadLogoModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closeUploadLogoModal()">&times;</span>
+                <h2>Upload Company Logo</h2>
+                <input type="file" id="logoFileInput" accept="image/*">
+                <button onclick="uploadLogo()">Upload</button>
             </div>
         </div>
     </div>

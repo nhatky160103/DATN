@@ -5,7 +5,10 @@ import time
 from datetime import datetime
 
 from .timeKeeping import create_daily_timekeeping
-from .cloudinary import  upload_folder_to_cloudinary, delete_folder_from_cloudinary, cloudinary_new_bucket
+from .cloudinary import  (upload_folder_to_cloudinary, 
+                          delete_folder_from_cloudinary, 
+                          cloudinary_new_bucket,
+                          delete_bucket_from_cloudinary)
 
 cred = credentials.Certificate("database/ServiceAccountKey.json")
 firebase_admin.initialize_app(cred, {
@@ -172,14 +175,15 @@ def get_all_bucket_names():
     return list(data.keys())
 
 
-def create_new_bucket(bucket_name: str, config_data: dict = None):
+def create_new_bucket(bucket_name: str, config_data: dict = None, logo_path: str = None):
     # Kiểm tra bucket đã tồn tại chưa
     existing_buckets = get_all_bucket_names()
     if bucket_name in existing_buckets:
         print(f"⚠️ Bucket '{bucket_name}' already exists.")
         return False
 
-    cloudinary_new_bucket(bucket_name)
+    logo_url = cloudinary_new_bucket(bucket_name, logo_path=logo_path)
+    db.reference(f"{bucket_name}/Logo/url").set(logo_url)
     db.reference(f"{bucket_name}/Employees").set({})
     print(f"✅ Created new bucket: '{bucket_name}' with empty Employees list.")
 
@@ -190,6 +194,10 @@ def create_new_bucket(bucket_name: str, config_data: dict = None):
 
     return True
 
+def get_logo_url(bucket_name):
+    ref = db.reference(f"{bucket_name}/Logo/url")
+    url = ref.get()
+    return url
 
 
 def get_person_ids_from_bucket(bucket_name):
@@ -205,8 +213,26 @@ def get_person_ids_from_bucket(bucket_name):
     # Lấy danh sách các person_id từ dữ liệu
     person_ids = list(data.keys())
     return person_ids
+
+
+def delete_bucket(bucket_name):
+    ref = db.reference(bucket_name)
+    firebase_ok = ref.get() is not None
+    if firebase_ok:
+        ref.delete()
+        print(f"✅ Deleted bucket '{bucket_name}' from Firebase.")
+    else:
+        print(f"⚠️ Bucket '{bucket_name}' does not exist in Firebase.")
+
+    cloudinary_ok = delete_bucket_from_cloudinary(bucket_name)
+
+    if firebase_ok and cloudinary_ok:
+        print(f"✅ Successfully deleted bucket '{bucket_name}' from both Firebase and Cloudinary.")
+        return True
+    return False
     
+
 if __name__ =="__main__":
-    data = load_config_from_bucket('Hust')
-    print(data)
-    # delete_person('Hust', '000009')
+    # data = load_config_from_bucket('Hust')
+    # print(data)
+    delete_bucket('Neu')

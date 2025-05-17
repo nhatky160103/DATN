@@ -180,6 +180,7 @@ class EmbeddingManager:
                 if x_aligned is not None:
                     x_aligned = transform_image(x_aligned)
                 else:
+                    image = np.array(image)
                     face, _, prob = detect_face_and_nose(image)
                     if face is not None and prob > 0.7:
                         x1, y1, x2, y2 = map(int, face)

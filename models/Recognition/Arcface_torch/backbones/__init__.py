@@ -1,6 +1,5 @@
 from .iresnet import iresnet18, iresnet34, iresnet50, iresnet100, iresnet200
-from .iresnet_se import iresnet50_se
-
+from .iresnet_lite import iresnet18_lite, iresnet34_lite, iresnet50_lite, iresnet100_lite, iresnet200_lite
 
 def get_model(name, **kwargs):
     # resnet
@@ -14,8 +13,16 @@ def get_model(name, **kwargs):
         return iresnet100(False, **kwargs)
     elif name == "r200":
         return iresnet200(False, **kwargs)
-
-    elif name == "r50_se":
-        return iresnet50_se(False, **kwargs)
+    if name == "r18_lite":
+        return iresnet18_lite(False, **kwargs)
+    elif name == "r34_lite":
+        return iresnet34_lite(False, **kwargs)
+    elif name == "r50_lite":
+        return iresnet50_lite(False, **kwargs)
+    elif name == "r100_lite":
+        return iresnet100_lite(False, **kwargs)
+    elif name == "r200_lite":
+        return iresnet200_lite(False, **kwargs)
+   
     else:
         raise ValueError()

@@ -16,7 +16,7 @@ def find_closest_person(
 
     Parameters:
     ----------
-    pred_embed : torch.Tensor
+    pred_embed : torch.Tensor   
         The embedding of the query image.
     embeddings : numpy.ndarray
         Precomputed embeddings of the dataset.
@@ -56,7 +56,8 @@ def find_closest_person(
     np.add.at(counts, image2class_np, 1)
 
     avg_distances = np.divide(total_distances, counts, out=np.full_like(total_distances, np.inf), where=counts > 0)
-    print(avg_distances)
+    # print(avg_distances)
+    print(np.argmin(avg_distances))
     if distance_mode == 'l2': # l2
         best_class = np.argmin(avg_distances) 
         if avg_distances[best_class] < l2_threshold:

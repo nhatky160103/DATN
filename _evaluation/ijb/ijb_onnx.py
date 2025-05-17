@@ -9,12 +9,11 @@ import numpy as np
 import pandas as pd
 import prettytable
 import skimage.transform
-import torch
 from sklearn.metrics import roc_curve
 from sklearn.preprocessing import normalize
-from torch.utils.data import DataLoader
-from onnx_helper import ArcFaceORT
-from tqdm import tqdm  # <== THÊM DÒNG NÀY
+import insightface
+from insightface.model_zoo import ArcFaceONNX
+
 
 SRC = np.array(
     [
@@ -27,7 +26,6 @@ SRC = np.array(
 SRC[:, 0] += 8.0
 
 
-@torch.no_grad()
 class AlignedDataSet(mx.gluon.data.Dataset):
     def __init__(self, root, lines, align=True):
         self.lines = lines
@@ -50,52 +48,30 @@ class AlignedDataSet(mx.gluon.data.Dataset):
         img_2 = np.expand_dims(np.fliplr(img), 0)
         output = np.concatenate((img_1, img_2), axis=0).astype(np.float32)
         output = np.transpose(output, (0, 3, 1, 2))
-        return torch.from_numpy(output)
+        output = mx.nd.array(output)
+        return output
 
 
-# @torch.no_grad()
-# def extract(model_root, dataset):
-#     model = ArcFaceORT(model_path=model_root)
-#     model.check()
-#     feat_mat = np.zeros(shape=(len(dataset), 2 * model.feat_dim))
-
-#     def collate_fn(data):
-#         return torch.cat(data, dim=0)
-
-#     data_loader = DataLoader(
-#         dataset, batch_size=128, drop_last=False, num_workers=4, collate_fn=collate_fn, )
-#     num_iter = 0
-#     for batch in data_loader:
-#         batch = batch.numpy()
-#         batch = (batch - model.input_mean) / model.input_std
-#         feat = model.session.run(model.output_names, {model.input_name: batch})[0]
-#         feat = np.reshape(feat, (-1, model.feat_dim * 2))
-#         feat_mat[128 * num_iter: 128 * num_iter + feat.shape[0], :] = feat
-#         num_iter += 1
-#         if num_iter % 50 == 0:
-#             print(num_iter)
-#     return feat_mat
-
-
-@torch.no_grad()
-def extract(model_root, dataset):
-    model = ArcFaceORT(model_path=model_root)
+def extract(model_file, dataset):
+    model = ArcFaceONNX(model_file=model_file)
     model.check()
     feat_mat = np.zeros(shape=(len(dataset), 2 * model.feat_dim))
 
-    def collate_fn(data):
-        return torch.cat(data, dim=0)
+    def batchify_fn(data):
+        return mx.nd.concat(*data, dim=0)
 
-    data_loader = DataLoader(
-        dataset, batch_size=128, drop_last=False, num_workers=4, collate_fn=collate_fn)
-
-    for num_iter, batch in enumerate(tqdm(data_loader, desc="Extracting features")):
-        batch = batch.numpy()
-        batch = (batch - model.input_mean) / model.input_std
-        feat = model.session.run(model.output_names, {model.input_name: batch})[0]
+    data_loader = mx.gluon.data.DataLoader(
+        dataset, 128, last_batch='keep', num_workers=4,
+        thread_pool=True, prefetch=16, batchify_fn=batchify_fn)
+    num_iter = 0
+    for batch in data_loader:
+        batch = batch.asnumpy()
+        feat = model.forward(batch)
         feat = np.reshape(feat, (-1, model.feat_dim * 2))
         feat_mat[128 * num_iter: 128 * num_iter + feat.shape[0], :] = feat
-
+        num_iter += 1
+        if num_iter % 50 == 0:
+            print(num_iter)
     return feat_mat
 
 
@@ -120,132 +96,75 @@ def read_image_feature(path):
     return img_feats
 
 
-# def image2template_feature(img_feats=None,
-#                            templates=None,
-#                            medias=None):
-#     unique_templates = np.unique(templates)
-#     template_feats = np.zeros((len(unique_templates), img_feats.shape[1]))
-#     for count_template, uqt in enumerate(unique_templates):
-#         (ind_t,) = np.where(templates == uqt)
-#         face_norm_feats = img_feats[ind_t]
-#         face_medias = medias[ind_t]
-#         unique_medias, unique_media_counts = np.unique(face_medias, return_counts=True)
-#         media_norm_feats = []
-#         for u, ct in zip(unique_medias, unique_media_counts):
-#             (ind_m,) = np.where(face_medias == u)
-#             if ct == 1:
-#                 media_norm_feats += [face_norm_feats[ind_m]]
-#             else:  # image features from the same video will be aggregated into one feature
-#                 media_norm_feats += [np.mean(face_norm_feats[ind_m], axis=0, keepdims=True), ]
-#         media_norm_feats = np.array(media_norm_feats)
-#         template_feats[count_template] = np.sum(media_norm_feats, axis=0)
-#         if count_template % 2000 == 0:
-#             print('Finish Calculating {} template features.'.format(
-#                 count_template))
-#     template_norm_feats = normalize(template_feats)
-#     return template_norm_feats, unique_templates
-def image2template_feature(img_feats=None, templates=None, medias=None):
+def image2template_feature(img_feats=None,
+                           templates=None,
+                           medias=None):
     unique_templates = np.unique(templates)
     template_feats = np.zeros((len(unique_templates), img_feats.shape[1]))
-
-    for count_template, uqt in enumerate(tqdm(unique_templates, desc="Computing template features")):
+    for count_template, uqt in enumerate(unique_templates):
         (ind_t,) = np.where(templates == uqt)
         face_norm_feats = img_feats[ind_t]
         face_medias = medias[ind_t]
         unique_medias, unique_media_counts = np.unique(face_medias, return_counts=True)
         media_norm_feats = []
-
         for u, ct in zip(unique_medias, unique_media_counts):
             (ind_m,) = np.where(face_medias == u)
             if ct == 1:
                 media_norm_feats += [face_norm_feats[ind_m]]
-            else:
-                media_norm_feats += [np.mean(face_norm_feats[ind_m], axis=0, keepdims=True)]
-
+            else:  # image features from the same video will be aggregated into one feature
+                media_norm_feats += [np.mean(face_norm_feats[ind_m], axis=0, keepdims=True), ]
         media_norm_feats = np.array(media_norm_feats)
         template_feats[count_template] = np.sum(media_norm_feats, axis=0)
-
+        if count_template % 2000 == 0:
+            print('Finish Calculating {} template features.'.format(
+                count_template))
     template_norm_feats = normalize(template_feats)
     return template_norm_feats, unique_templates
 
 
-# def verification(template_norm_feats=None,
-#                  unique_templates=None,
-#                  p1=None,
-#                  p2=None):
-#     template2id = np.zeros((max(unique_templates) + 1, 1), dtype=int)
-#     for count_template, uqt in enumerate(unique_templates):
-#         template2id[uqt] = count_template
-#     score = np.zeros((len(p1),))
-#     total_pairs = np.array(range(len(p1)))
-#     batchsize = 100000
-#     sublists = [total_pairs[i: i + batchsize] for i in range(0, len(p1), batchsize)]
-#     total_sublists = len(sublists)
-#     for c, s in enumerate(sublists):
-#         feat1 = template_norm_feats[template2id[p1[s]]]
-#         feat2 = template_norm_feats[template2id[p2[s]]]
-#         similarity_score = np.sum(feat1 * feat2, -1)
-#         score[s] = similarity_score.flatten()
-#         if c % 10 == 0:
-#             print('Finish {}/{} pairs.'.format(c, total_sublists))
-#     return score
-def verification(template_norm_feats=None, unique_templates=None, p1=None, p2=None):
+def verification(template_norm_feats=None,
+                 unique_templates=None,
+                 p1=None,
+                 p2=None):
     template2id = np.zeros((max(unique_templates) + 1, 1), dtype=int)
     for count_template, uqt in enumerate(unique_templates):
         template2id[uqt] = count_template
-
     score = np.zeros((len(p1),))
-    total_pairs = np.arange(len(p1))
+    total_pairs = np.array(range(len(p1)))
     batchsize = 100000
     sublists = [total_pairs[i: i + batchsize] for i in range(0, len(p1), batchsize)]
-
-    for s in tqdm(sublists, desc="Verifying pairs"):
+    total_sublists = len(sublists)
+    for c, s in enumerate(sublists):
         feat1 = template_norm_feats[template2id[p1[s]]]
         feat2 = template_norm_feats[template2id[p2[s]]]
         similarity_score = np.sum(feat1 * feat2, -1)
         score[s] = similarity_score.flatten()
-
+        if c % 10 == 0:
+            print('Finish {}/{} pairs.'.format(c, total_sublists))
     return score
 
 
-# def verification2(template_norm_feats=None,
-#                   unique_templates=None,
-#                   p1=None,
-#                   p2=None):
-#     template2id = np.zeros((max(unique_templates) + 1, 1), dtype=int)
-#     for count_template, uqt in enumerate(unique_templates):
-#         template2id[uqt] = count_template
-#     score = np.zeros((len(p1),))  # save cosine distance between pairs
-#     total_pairs = np.array(range(len(p1)))
-#     batchsize = 100000  # small batchsize instead of all pairs in one batch due to the memory limiation
-#     sublists = [total_pairs[i:i + batchsize] for i in range(0, len(p1), batchsize)]
-#     total_sublists = len(sublists)
-#     for c, s in enumerate(sublists):
-#         feat1 = template_norm_feats[template2id[p1[s]]]
-#         feat2 = template_norm_feats[template2id[p2[s]]]
-#         similarity_score = np.sum(feat1 * feat2, -1)
-#         score[s] = similarity_score.flatten()
-#         if c % 10 == 0:
-#             print('Finish {}/{} pairs.'.format(c, total_sublists))
-#     return score
-def verification2(template_norm_feats=None, unique_templates=None, p1=None, p2=None):
+def verification2(template_norm_feats=None,
+                  unique_templates=None,
+                  p1=None,
+                  p2=None):
     template2id = np.zeros((max(unique_templates) + 1, 1), dtype=int)
     for count_template, uqt in enumerate(unique_templates):
         template2id[uqt] = count_template
-
-    score = np.zeros((len(p1),))
-    total_pairs = np.arange(len(p1))
-    batchsize = 100000
-    sublists = [total_pairs[i: i + batchsize] for i in range(0, len(p1), batchsize)]
-
-    for s in tqdm(sublists, desc="Verifying pairs v2"):
+    score = np.zeros((len(p1),))  # save cosine distance between pairs
+    total_pairs = np.array(range(len(p1)))
+    batchsize = 100000  # small batchsize instead of all pairs in one batch due to the memory limiation
+    sublists = [total_pairs[i:i + batchsize] for i in range(0, len(p1), batchsize)]
+    total_sublists = len(sublists)
+    for c, s in enumerate(sublists):
         feat1 = template_norm_feats[template2id[p1[s]]]
         feat2 = template_norm_feats[template2id[p2[s]]]
         similarity_score = np.sum(feat1 * feat2, -1)
         score[s] = similarity_score.flatten()
-
+        if c % 10 == 0:
+            print('Finish {}/{} pairs.'.format(c, total_sublists))
     return score
-    
+
 
 def main(args):
     use_norm_score = True  # if Ture, TestMode(N1)
@@ -272,7 +191,7 @@ def main(args):
     img_list = open(img_list_path)
     files = img_list.readlines()
     dataset = AlignedDataSet(root=img_path, lines=files, align=True)
-    img_feats = extract(args.model_root, dataset)
+    img_feats = extract(args.model_file, dataset)
 
     faceness_scores = []
     for each_line in files:
@@ -309,12 +228,10 @@ def main(args):
     score = verification(template_norm_feats, unique_templates, p1, p2)
     stop = timeit.default_timer()
     print('Time: %.2f s. ' % (stop - start))
-    result_dir = args.model_root
-
-    save_path = os.path.join(result_dir, "{}_result".format(args.target))
+    save_path = os.path.join(args.result_dir, "{}_result".format(args.target))
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    score_save_file = os.path.join(save_path, "{}.npy".format(args.target))
+    score_save_file = os.path.join(save_path, "{}.npy".format(args.model_file.split('/')[-1]))
     np.save(score_save_file, score)
     files = [score_save_file]
     methods = []
@@ -341,9 +258,10 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='do ijb test')
+    parser = argparse.ArgumentParser(description='do onnx ijb test')
     # general
-    parser.add_argument('--model-root', default='', help='path to load model.')
-    parser.add_argument('--image-path', default='/train_tmp/IJB_release/IJBC', type=str, help='')
+    parser.add_argument('--model-file', default='', help='path to onnx model.')
+    parser.add_argument('--image-path', default='', type=str, help='')
+    parser.add_argument('--result-dir', default='.', type=str, help='')
     parser.add_argument('--target', default='IJBC', type=str, help='target, set to IJBC or IJBB')
     main(parser.parse_args())

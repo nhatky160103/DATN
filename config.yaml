@@ -5,7 +5,6 @@ infer_video:
   required_images: 10
   validation_threshold: 0.7
   is_anti_spoof: False
-  distance_mode: 'cosine'
   anti_spoof_threshold: 0.9
 
 identity_person:

@@ -68,7 +68,7 @@ body {
 .sidebar button {
     width: 100%;
     padding: 10px;
-    background-color: #007bff;
+    background-color: #112337;
     color: white;
     border: none;
     cursor: pointer;
@@ -88,7 +88,7 @@ h2 {
 
 button {
     padding: 10px 20px;
-    background-color: #007bff;
+    background-color: #8d9eaf;
     color: white;
     border: none;
     border-radius: 5px;

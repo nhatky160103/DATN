@@ -20,11 +20,31 @@ cloudinary.config(
 )
 
 
-def cloudinary_new_bucket(bucket_name):
+def upload_logo_to_cloudinary(bucket_name, file_path):
+    cloud_folder = f"{bucket_name}/Logo"
+    try:
+        upload_result = cloudinary.uploader.upload(
+            file_path,
+            folder=cloud_folder,
+            public_id="company_logo",
+            overwrite=True,
+            resource_type="image"
+        )
+        url = upload_result['secure_url']
+        # Lưu URL vào Firebase
+        print(f"✅ Uploaded logo to {cloud_folder}: {url}")
+        return url
+    except Exception as e:
+        print(f"❌ Failed to upload logo: {e}")
+        return None
+    
+
+def cloudinary_new_bucket(bucket_name, logo_path=None):
     folders = [
         bucket_name,
         f"{bucket_name}/Employees",
-        f"{bucket_name}/Embeddings"
+        f"{bucket_name}/Embeddings",
+        f"{bucket_name}/Logo"
     ]
 
     for folder in folders:
@@ -36,6 +56,14 @@ def cloudinary_new_bucket(bucket_name):
                 print(f"⚠️ Folder '{folder}' already exists.")
             else:
                 print(f"❌ Failed to create folder '{folder}': {e}")
+    # Nếu có logo_path thì upload logo luôn
+    if logo_path:
+        url = upload_logo_to_cloudinary(bucket_name, logo_path)
+        if url:
+            print(f"✅ Uploaded logo for bucket '{bucket_name}': {url}")
+        else:
+            print(f"❌ Failed to upload logo for bucket '{bucket_name}'")
+    return url
 
 
 # Upload folder to Cloudinary
@@ -135,9 +163,32 @@ def upload_embedding_to_cloudinary(bucket_name, folder_path):
     return uploaded_files
 
 
+def delete_bucket_from_cloudinary(bucket_name):
+    folders = [
+        f"{bucket_name}/Employees",
+        f"{bucket_name}/Embeddings",
+        f"{bucket_name}/Logo",
+        bucket_name
+    ]
+    success = True
+    for folder in folders:
+        try:
+            # Xóa tất cả resource dạng image
+            cloudinary.api.delete_resources_by_prefix(folder, resource_type="image")
+            # Xóa tất cả resource dạng raw
+            cloudinary.api.delete_resources_by_prefix(folder, resource_type="raw")
+            # Xóa folder
+            cloudinary.api.delete_folder(folder)
+            print(f"✅ Deleted folder '{folder}' from Cloudinary!")
+        except Exception as e:
+            print(f"❌ Failed to delete folder '{folder}': {e}")
+            success = False
+    return success
+
+
 if __name__ == "__main__":
     # upload_folder_to_cloudinary('Hust', '000001', 'data/Testset/baejun')
     # image_list = get_images_from_cloudinary('Hust', '000000')
     # print(image_list)
     # upload_embedding_to_cloudinary('Hust', 'data/data_source')
-    cloudinary_new_bucket('Huce')
+    delete_bucket_from_cloudinary('Huce')

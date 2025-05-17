@@ -1,5 +1,15 @@
 let resultCheckingInterval;
 
+function showToast(message, isError=false) {
+    const toast = document.getElementById('toast');
+    toast.innerText = message;
+    toast.style.backgroundColor = isError ? '#f44336' : '#4CAF50';
+    toast.classList.remove('hidden');
+    setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 3000);
+}
+
 function toggleCamera() {
     const cameraModal = document.getElementById("cameraModal");
     const cameraFeed = document.getElementById("cameraFeed");
@@ -154,8 +164,12 @@ function closeNewBucketModal() {
     document.getElementById('newBucketModal').classList.add('hidden');
 }
 
+
+
 function createNewBucket() {
     const bucketName = document.getElementById('bucketNameInput').value.trim();
+    const logoInput = document.getElementById('bucketLogoInput');
+    const logoFile = logoInput ? logoInput.files[0] : null;
     const loadingOverlay = document.getElementById('loading-overlay'); 
     if (!bucketName) {
         showToast("❌ Please enter a bucket name!", true);
@@ -163,13 +177,29 @@ function createNewBucket() {
     }
 
     loadingOverlay.style.display = 'flex';
-    fetch('/create_bucket', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ bucket_name: bucketName })
-    })
+
+    let fetchOptions;
+    if (logoFile) {
+        // Gửi form-data nếu có file logo
+        const formData = new FormData();
+        formData.append('bucket_name', bucketName);
+        formData.append('logo', logoFile);
+        fetchOptions = {
+            method: 'POST',
+            body: formData
+        };
+    } else {
+        // Gửi JSON như cũ nếu không có logo
+        fetchOptions = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ bucket_name: bucketName })
+        };
+    }
+
+    fetch('/create_bucket', fetchOptions)
     .then(response => response.json())
     .then(data => {
         loadingOverlay.style.display = 'none';
@@ -186,14 +216,4 @@ function createNewBucket() {
         showToast("❌ Error creating bucket!", true);
         console.error(error);
     });
-}
-
-function showToast(message, isError=false) {
-    const toast = document.getElementById('toast');
-    toast.innerText = message;
-    toast.style.backgroundColor = isError ? '#f44336' : '#4CAF50';
-    toast.classList.remove('hidden');
-    setTimeout(() => {
-        toast.classList.add('hidden');
-    }, 3000);
 }

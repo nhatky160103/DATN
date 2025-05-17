@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>🎛️ Admin Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-
 </head>
 
 <body>
@@ -20,7 +19,6 @@
             <ul>
                 <li><button onclick="showTab('config')">Config</button></li>
                 <li><button onclick="showTab('addEmployee')">Add Employee</button></li>
-                <li><button onclick="showTab('createEmbedding')">Create Embedding</button></li>
                 <li><button onclick="showTab('exportTimekeeping')">Export Timekeeping</button></li>
                 <li><button onclick="showTab('deletePerson')">Delete Employee</button></li> <!-- New tab -->
             </ul>
@@ -39,50 +37,42 @@
                     <div class="config-box">
                         <h3>infer_video</h3>
                         <div class="setting">
-                            <label for="min_face_area">min_face_area:</label>
+                            <label for="min_face_area">Min_face_area:</label>
                             <input type="range" id="min_face_area" min="0.01" max="1" step="0.01" 
                                    value="{{ config['infer_video']['min_face_area'] }}" 
                                    oninput="updateValue('min_face_area_val', this.value)">
                             <span id="min_face_area_val">{{ config['infer_video']['min_face_area'] }}</span>
                         </div>
                         <div class="setting">
-                            <label for="bbox_threshold">bbox_threshold:</label>
+                            <label for="bbox_threshold">Bbox_threshold:</label>
                             <input type="range" id="bbox_threshold" min="0.1" max="1" step="0.01" 
                                    value="{{ config['infer_video']['bbox_threshold'] }}" 
                                    oninput="updateValue('bbox_threshold_val', this.value)">
                             <span id="bbox_threshold_val">{{ config['infer_video']['bbox_threshold'] }}</span>
                         </div>
                         <div class="setting">
-                            <label for="required_images">required_images:</label>
+                            <label for="required_images">Required_images:</label>
                             <input type="range" id="required_images" min="1" max="50" step="1" 
                                    value="{{ config['infer_video']['required_images'] }}" 
                                    oninput="updateValue('required_images_val', this.value)">
                             <span id="required_images_val">{{ config['infer_video']['required_images'] }}</span>
                         </div>
                         <div class="setting">
-                            <label for="validation_threshold">validation_threshold:</label>
+                            <label for="validation_threshold">Validation_threshold:</label>
                             <input type="range" id="validation_threshold" min="0.1" max="1" step="0.01" 
                                    value="{{ config['infer_video']['validation_threshold'] }}" 
                                    oninput="updateValue('validation_threshold_val', this.value)">
                             <span id="validation_threshold_val">{{ config['infer_video']['validation_threshold'] }}</span>
                         </div>
                         <div class="setting">
-                            <label for="is_anti_spoof">is_anti_spoof:</label>
+                            <label for="is_anti_spoof">Is_anti_spoof:</label>
                             <label class="switch">
                                 <input type="checkbox" id="is_anti_spoof" {% if config['infer_video']['is_anti_spoof'] %}checked{% endif %}>
                                 <span class="slider round"></span>
                             </label>
                         </div>
                         <div class="setting">
-                            <label for="distance_mode">distance_mode:</label>
-                            <select id="distance_mode" onchange="updateValue('distance_mode_val', this.value)">
-                                <option value="cosine" {% if config['infer_video']['distance_mode'] == 'cosine' %}selected{% endif %}>cosine</option>
-                                <option value="euclidean" {% if config['infer_video']['distance_mode'] == 'euclidean' %}selected{% endif %}>euclidean</option>
-                            </select>
-                            <span id="distance_mode_val">{{ config['infer_video']['distance_mode'] }}</span>
-                        </div>
-                        <div class="setting">
-                            <label for="anti_spoof_threshold">anti_spoof_threshold:</label>
+                            <label for="anti_spoof_threshold">Anti_spoof_threshold:</label>
                             <input type="range" id="anti_spoof_threshold" min="0.1" max="1" step="0.01" 
                                    value="{{ config['infer_video']['anti_spoof_threshold'] }}" 
                                    oninput="updateValue('anti_spoof_threshold_val', this.value)">
@@ -92,23 +82,23 @@
         
                     <!-- identity_person -->
                     <div class="config-box">
-                        <h3>identity_person</h3>
+                        <h3>Identity_person</h3>
                         <div class="setting">
-                            <label for="l2_threshold">l2_threshold:</label>
+                            <label for="l2_threshold">L2_threshold:</label>
                             <input type="range" id="l2_threshold" min="0" max="50" step="0.1" 
                                    value="{{ config['identity_person']['l2_threshold'] }}" 
                                    oninput="updateValue('l2_threshold_val', this.value)">
                             <span id="l2_threshold_val">{{ config['identity_person']['l2_threshold'] }}</span>
                         </div>
                         <div class="setting">
-                            <label for="cosine_threshold">cosine_threshold:</label>
+                            <label for="cosine_threshold">Cosine_threshold:</label>
                             <input type="range" id="cosine_threshold" min="0" max="1" step="0.01" 
                                    value="{{ config['identity_person']['cosine_threshold'] }}" 
                                    oninput="updateValue('cosine_threshold_val', this.value)">
                             <span id="cosine_threshold_val">{{ config['identity_person']['cosine_threshold'] }}</span>
                         </div>
                         <div class="setting">
-                            <label for="identity_distance_mode">distance_mode:</label>
+                            <label for="identity_distance_mode">Distance_mode:</label>
                             <select id="identity_distance_mode" onchange="updateValue('identity_distance_mode_val', this.value)">
                                 <option value="cosine" {% if config['identity_person']['distance_mode'] == 'cosine' %}selected{% endif %}>cosine</option>
                                 <option value="euclidean" {% if config['identity_person']['distance_mode'] == 'euclidean' %}selected{% endif %}>euclidean</option>
@@ -118,7 +108,7 @@
                     </div>
                 </div>
         
-                <button onclick="saveConfig()">💾 Save Configuration</button>
+                <button onclick="saveConfig()">Save Configuration</button>
             </div>
 
             <!-- add employees -->
@@ -212,22 +202,6 @@
                 </div>
             </div>
               
-        
-            <div id="createEmbedding" class="tab-content">
-                <h2>🧠 Create Embedding</h2>
-                <p>The embedding creation process begins by gathering data from the Firebase Realtime Database, which stores employee information and their images. These images are then processed using face detection models (such as MTCNN or YOLO) to ensure only valid face images are used.</p>
-                <p>The aligned images are passed through a face recognition model (e.g., cosface) to generate embeddings for each face. Once the process is complete, the embeddings are stored locally and uploaded to Cloudinary for easy access and future use.</p>
-                <p>Steps involved:</p>
-                <ul>
-                    <li>Collect and process face images from employee data</li>
-                    <li>Apply face detection models (MTCNN or YOLO) for alignment</li>
-                    <li>Pass aligned images through a face recognition model to generate embeddings</li>
-                    <li>Store embeddings and metadata both locally and on Cloudinary</li>
-                </ul>
-                <button onclick="createEmbedding()">Create Embedding</button>
-                <p id="embeddingStatus"></p>
-            </div>
-            
             
             <div id="exportTimekeeping" class="tab-content">
                 <h2>📊 Export Timekeeping Data</h2>
