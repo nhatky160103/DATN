@@ -84,6 +84,17 @@
             </a>
           </li>
 
+          <li>
+            <a href="#" data-tab="openCameraTab" title="Open Camera">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="7" width="18" height="13" rx="2"/>
+                <circle cx="12" cy="13" r="4"/>
+                <path d="M5 7V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/>
+              </svg>
+              <span>Open Camera</span>
+            </a>
+          </li>
+
         </ul>
       </nav>
     </aside>
@@ -107,7 +118,6 @@
             <ul id="notificationList">
             </ul>
           </div>
-
 
           <button id="companyInfoBtn" aria-label="Company Info" title="Company Info">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
@@ -317,23 +327,29 @@
 
 
         <section id="deleteBucket" class="tab-content">
-          <h2>🗑️ Delete Bucket</h2>
-          <button id="showConfirmDeleteBtn">Delete Bucket</button>
+          <div class="delete-bucket-center">
+            <h2>🗑️ Delete Bucket</h2>
+            <button id="showConfirmDeleteBtn">Delete Bucket</button>
 
-          <!-- Popup xác nhận xóa bucket -->
-          <div id="deleteBucketModal" class="modal" style="display:none;">
-            <div class="modal-content">
-              <span class="close" id="closeDeleteBucketModal">&times;</span>
-              <h3>Confirm Delete Bucket</h3>
-              <p>Type the bucket name to confirm:</p>
-              <input type="text" id="confirmBucketName" placeholder="Enter bucket name to confirm" />
-              <button id="deleteBucketBtn">Confirm Delete</button>
+            <!-- Popup xác nhận xóa bucket -->
+            <div id="deleteBucketModal" class="modal" style="display:none;">
+              <div class="modal-content">
+                <span class="close" id="closeDeleteBucketModal">&times;</span>
+                <h3>Confirm Delete Bucket</h3>
+                <p>Type the bucket name to confirm:</p>
+                <input type="text" id="confirmBucketName" placeholder="Enter bucket name to confirm" />
+                <button id="deleteBucketBtn">Confirm Delete</button>
+              </div>
             </div>
           </div>
-
-
         </section>
         
+        <section id="openCameraTab" class="tab-content">
+          <div class="open-camera-center">
+            <h2>🎥 Open Camera</h2>
+            <button class="open-camera-btn" onclick="window.location.href='/'">Open Camera</button>
+          </div>
+        </section>
 
       </main>
     </div>

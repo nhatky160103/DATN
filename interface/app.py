@@ -3,6 +3,7 @@ import os, cv2, yaml, shutil, queue
 from werkzeug.utils import secure_filename
 import time
 from datetime import datetime, timedelta
+import io
 
 from infer.get_embedding import EmbeddingManager
 from infer.infer_camera import infer_camera, check_validation
@@ -61,7 +62,6 @@ for bucket in get_all_bucket_names():
         print(f"❌ Error loading for bucket {bucket}: {e}")
 
 
-
 def get_or_set_default_bucket():
     bucket = session.get('selected_bucket')
     if not bucket:
@@ -86,7 +86,6 @@ def index():
     buckets = get_all_bucket_names()
     selected_bucket = get_or_set_default_bucket()
     return render_template('index.html', buckets=buckets, selected_bucket=selected_bucket)
-    return render_template('index.html')
 
 
 @app.route('/dashboard')
@@ -132,7 +131,7 @@ def add_member():
 
 @app.route("/export-timekeeping", methods=["POST"])
 def handle_export_timekeeping():
-    global latest_export_df
+
 
     data = request.get_json()
     selected_date = data.get('date')
@@ -143,32 +142,27 @@ def handle_export_timekeeping():
         if df is None or df.empty:
             return jsonify({"success": False, "message": "❗ No timekeeping data found."}), 404
 
-        latest_export_df = df  # lưu lại cho việc download sau
-
         data_json = df.to_dict(orient='records')
         return jsonify({"success": True, "data": data_json})
     except Exception as e:
         return jsonify({"success": False, "message": f"❌ Error: {str(e)}"}), 500
 
 
-from flask import send_file
-import io
-
-@app.route("/download-excel", methods=["GET"])
+@app.route("/download-excel", methods=["POST"])
 def download_excel():
-    global latest_export_df
+    data = request.get_json()
+    selected_date = data.get('date')
+    selected_bucket = get_or_set_default_bucket()
 
-    if latest_export_df is None:
-        return jsonify({"success": False, "message": "No exported data available."}), 400
+    df = export_to_excel(selected_bucket, selected_date)
+    if df is None or df.empty:
+        return jsonify({"success": False, "message": "No data for selected date."}), 404
 
-    # Tạo tệp Excel trong bộ nhớ (không lưu vào đĩa)
     output = io.BytesIO()
-    latest_export_df.to_excel(output, index=False)
+    df.to_excel(output, index=False)
     output.seek(0)
 
-    # Gửi tệp Excel trực tiếp cho client
     return send_file(output, as_attachment=True, download_name="timekeeping.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
 
 
 @app.route('/save_config', methods=['POST'])

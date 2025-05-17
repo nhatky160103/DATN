@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.toBlob(blob => {
       if (blob) {
         capturedBlobs.push(blob);  // Thêm ảnh vào mảng
-        showToast(`Captured ${capturedBlobs.length} photos!`, 'success');
+        showToast(`✅Captured ${capturedBlobs.length} photos!`, 'success');
       }
     }, 'image/jpeg');
   });
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedFiles = Array.from(realFileInput.files);
     hiddenFileInput.files = realFileInput.files;  // Assign the selected files to hidden input
     uploadModal.style.display = 'none';
-    showToast(`${selectedFiles.length} files selected.`, 'success');
+    showToast(`✅${selectedFiles.length} files selected.`, 'success');
   });
 
   // Handle form submission
@@ -167,18 +167,18 @@ document.addEventListener('DOMContentLoaded', () => {
       loadingOverlay.style.display = 'none';  // ✅ Ẩn overlay khi có phản hồi
 
       if (result.status === 'success') {
-        showToast('Employee added successfully!', 'success');
+        showToast('✅Employee added successfully!', 'success');
         form.reset();
         capturedBlobs = [];
         selectedFiles = [];  // Reset uploaded files
       } else {
-        showToast('Failed to add employee', 'error');
+        showToast('❌Failed to add employee', 'error');
       }
     })
     .catch(err => {
       loadingOverlay.style.display = 'none';  // ✅ Ẩn overlay khi lỗi
       console.error('Form submission error:', err);
-      showToast('Connection error.', 'error');
+      showToast('❌Connection error.', 'error');
     });
   });
 
@@ -219,10 +219,10 @@ function saveConfig() {
   })
   .then(response => response.json())
   .then(data => {
-      showToast('Configuration saved successfully', 'success');
+      showToast('✅Configuration saved successfully', 'success');
   })
   .catch((error) => {
-      showToast('Please try again!', 'error')
+      showToast('❌Please try again!', 'error')
       console.error('Error:', error);
   });
 }
@@ -240,7 +240,7 @@ async function toggleTimekeeping() {
 
     // Kiểm tra nếu chưa chọn ngày
     if (!selectedDate) {
-        showToast("Please select a date!", "error");
+        showToast("⚠️ Please select a date!", "error");
         return;
     }
 
@@ -265,7 +265,7 @@ async function toggleTimekeeping() {
             }
         } catch (error) {
             console.error(error);
-            showToast("Failed to load data!", "error");
+            showToast("❌Failed to load data!", "error");
         } finally {
             btnToggle.disabled = false;
         }
@@ -334,31 +334,33 @@ function renderTable(data) {
         body.appendChild(tr);
     });
 }
-
 async function downloadExcel() {
   const selectedDate = document.getElementById("exportDate").value;
   if (!selectedDate) {
-      showToast("Please select a date!", "error");
+      showToast("⚠️Please select a date!", "error");
       return;
   }
 
   try {
-      // Gửi yêu cầu để xuất Excel
-      const response = await fetch("/download-excel", { method: "GET" });
-      const result = await response.blob();  // Nhận dữ liệu dưới dạng Blob
-
-      if (result) {
-          // Dùng FileSaver.js để lưu tệp Excel
-          saveAs(result, "timekeeping.xlsx");
-          showToast("✅ Data exported successfully!", "success");
-      } else {
-          throw new Error(result.message || "Failed to export data.");
+      const response = await fetch("/download-excel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: selectedDate })
+      });
+      if (!response.ok) {
+          const err = await response.json();
+          showToast("❌" + err.message || "❌No data to export!", "error");
+          return;
       }
+      const blob = await response.blob();
+      saveAs(blob, "timekeeping.xlsx");
+      showToast("✅ Data exported successfully!", "success");
   } catch (error) {
       console.error(error);
-      showToast("Error exporting data!", "error");
+      showToast("❌Error exporting data!", "error");
   }
 }
+
 
 
 function loadPersonList() {
@@ -383,7 +385,7 @@ function deleteEmployee() {
   const loadingOverlay = document.getElementById('loading-overlay'); 
   const toast = document.querySelector('#toast2')
   if (!personId) {
-      showToast('Please select employee', 'error');
+      showToast('⚠️Please select employee', 'error');
       return;
   }
   
@@ -399,19 +401,19 @@ function deleteEmployee() {
       loadingOverlay.style.display = 'none';
       if (data.success) {
           
-          showToast('Delete succesfully!', 'success');
+          showToast('✅Delete succesfully!', 'success');
 
           const select = document.getElementById('personListSelect');
           const option = select.querySelector(`option[value="${personId}"]`);
           if (option) option.remove();
       } else {
-          showToast(data.error || 'Failed!', 'error');
+          showToast("❌" + data.error || '❌Failed!', 'error');
       }
 
   })
   .catch(error => {
       loadingOverlay.style.display = 'none';
-      showToast('Error: ' + error.message, 'error');
+      showToast('❌Error: ' + error.message, 'error');
     
   });
 
@@ -449,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const input = confirmInput.value.trim();
       const currentBucket = document.querySelector('.profile span').textContent.trim();
       if (input !== currentBucket) {
-        showToast('Bucket name does not match. Please type the exact bucket name to confirm.', 'error');
+        showToast('❌Bucket name does not match.', 'error');
         return;
       }
       if (!confirm(`Are you sure you want to delete bucket "${currentBucket}"? This action cannot be undone!`)) {
@@ -468,18 +470,18 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(data => {
         if (loadingOverlay) loadingOverlay.style.display = 'none';
         if (data.success) {
-          showToast(data.message, 'success');
+          showToast("✅" + data.message, 'success');
           modal.style.display = 'none';
           setTimeout(() => {
             window.location.href = '/';
           }, 1500);
         } else {
-          showToast(data.message || 'Failed to delete bucket!', 'error');
+          showToast("❌" + data.message || '❌Failed to delete bucket!', 'error');
         }
       })
       .catch(err => {
         if (loadingOverlay) loadingOverlay.style.display = 'none';
-        showToast('Error deleting bucket!', 'error');
+        showToast('❌Error deleting bucket!', 'error');
       });
     });
   }
