@@ -109,12 +109,13 @@
           </div>
 
 
-          <button aria-label="User Profile" title="User Profile">
+          <button id="companyInfoBtn" aria-label="Company Info" title="Company Info">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
               <circle cx="12" cy="7" r="4"></circle>
               <path d="M5.5 21a8.38 8.38 0 0 1 13 0"></path>
             </svg>
           </button>
+          <span id="employeeCountInfo" class="employee-count-info"></span>
           <div class="profile" tabindex="0" aria-label="User Profile">
             {% if logo_url %}
               <img src="{{ logo_url }}" alt="Company Logo" />

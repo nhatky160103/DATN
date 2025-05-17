@@ -7,8 +7,22 @@ body {
     color: #030505;
 }
 
-
-
+.employee-count-info {
+  display: none;
+  margin-left: 8px;
+  font-weight: 500;
+  color: #5e60ce;
+  background: #f3f4fa;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 1rem;
+  vertical-align: middle;
+  transition: all 0.2s;
+  box-shadow: 0 1px 4px #5e60ce22;
+}
+.employee-count-info.active {
+  display: inline-block;
+}
 /* ============ LAYOUT ============ */
   /* Reset & base */
     * {
