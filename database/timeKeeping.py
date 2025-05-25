@@ -151,7 +151,7 @@ def export_to_excel(bucket_name, date):
     
     if not timekeeping_data:
         print(f"No timekeeping data found for {date}")
-        return False
+        return None
 
     # Prepare data for export
     export_data = []

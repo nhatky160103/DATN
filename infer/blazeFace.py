@@ -1,9 +1,20 @@
-import mediapipe as mp
-import cv2
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
+import logging
+logging.getLogger('absl').setLevel(logging.ERROR)
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+logging.getLogger('mediapipe').setLevel(logging.ERROR)
+logging.getLogger('tensorflow.python').setLevel(logging.ERROR)
+logging.getLogger('tensorflow.lite.python.lite').setLevel(logging.ERROR)
+
+import cv2
+cv2.setLogLevel(0)  # hoặc dùng cv2.utils.logging.setLogLevel nếu cần
+
+import mediapipe as mp
 mp_face_detection = mp.solutions.face_detection
 # mp_drawing = mp.solutions.drawing_utils
-
 
 def detect_face_and_nose(frame):
 

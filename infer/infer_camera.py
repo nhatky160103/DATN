@@ -205,9 +205,22 @@ def check_validation(
 
     valid_images = input['valid_images']
 
-    if len(valid_images) == 0:
+
+    if valid_images is None or len(valid_images) == 0:
         print("Không có ảnh để xử lý.")
-        return
+        try:
+            playsound('audio/retry.mp3')
+            return 'UNKNOWN'
+        except Exception as e:
+            print(f"Lỗi khi phát âm thanh: {e}")
+
+    if embeddings is None or len(embeddings) == 0 or not image2class or not index2class:
+        print("Không có nhân viên trong database.")
+        try:
+            playsound('audio/retry.mp3')
+            return 'UNKNOWN'
+        except Exception as e:
+            print(f"Lỗi khi phát âm thanh: {e}")
     
     predict_class = []
 

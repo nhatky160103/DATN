@@ -50,17 +50,14 @@ for bucket in get_all_bucket_names():
         manager = EmbeddingManager(bucket_name=bucket)
         embeddings, image2class, index2class = manager.load(load_local=True)
 
-        if embeddings is not None:
-            app.config['embeddings'][bucket] = embeddings
-            app.config['image2class'][bucket] = image2class
-            app.config['index2class'][bucket] = index2class
-            app.config['config'][bucket]  = load_config_from_bucket(bucket) or get_default_config()
-            print(f"✅ Loaded to global config for bucket: {bucket}")
-        else:
-            print(f"⚠️ No data found for bucket: {bucket}")
+        app.config['embeddings'][bucket] = embeddings
+        app.config['image2class'][bucket] = image2class
+        app.config['index2class'][bucket] = index2class
+        app.config['config'][bucket]  = load_config_from_bucket(bucket) or get_default_config()
+        print(f"✅ Loaded to global config for bucket: {bucket}")
+
     except Exception as e:
         print(f"❌ Error loading for bucket {bucket}: {e}")
-
 
 def get_or_set_default_bucket():
     bucket = session.get('selected_bucket')
@@ -181,6 +178,7 @@ camera_data = queue.Queue()
 
 @app.route('/video_feed')
 def video_feed():
+    print('all keys:',  app.config['config'].keys())
     try:
         bucket_name = get_or_set_default_bucket()
         return Response(infer_camera(config = app.config['config'][bucket_name], 
@@ -198,9 +196,6 @@ def get_results():
     embeddings = app.config['embeddings'].get(bucket_name)
     image2class = app.config['image2class'].get(bucket_name)
     index2class = app.config['index2class'].get(bucket_name)
-
-    if embeddings is None:
-        return jsonify({"status": "error", "message": f"⚠️ No embeddings loaded for bucket: {bucket_name}"}), 500
 
     if not camera_data.empty():
         input_data = camera_data.get()
@@ -279,6 +274,11 @@ def create_bucket():
         return jsonify({"success": False, "message": str(e)})
 
     if created:
+        print('created:',bucket_name)
+        app.config['embeddings'][bucket_name] = None
+        app.config['image2class'][bucket_name] = None
+        app.config['index2class'][bucket_name] = None
+        app.config['config'][bucket_name] = load_config_from_bucket(bucket_name) or get_default_config()
         return jsonify({"success": True})
     else:
         return jsonify({"success": False, "message": f"Bucket '{bucket_name}' already exists or creation failed."})
@@ -293,6 +293,11 @@ def handle_delete_bucket():
 
     result = delete_bucket(bucket_name)
     if result:
+        for key in ['embeddings', 'image2class', 'index2class', 'config']:
+            app.config[key].pop(bucket_name, None)
+        # Nếu bucket bị xóa là bucket đang chọn thì reset session
+        if session.get('selected_bucket') == bucket_name:
+            session.pop('selected_bucket', None)
         return jsonify({"success": True, "message": f"Bucket '{bucket_name}' deleted successfully."})
     else:
         return jsonify({"success": False, "message": f"Failed to delete bucket '{bucket_name}'."}), 500
@@ -308,4 +313,6 @@ def get_employee_count_api():
     return {'count': count}
     
 if __name__ == '__main__':
+    import logging
+    logging.getLogger('werkzeug').setLevel(logging.ERROR)
     app.run(debug=True)

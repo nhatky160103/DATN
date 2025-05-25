@@ -35,6 +35,7 @@ def find_closest_person(
         Class label of the closest match, or -1 if no match meets the threshold.
 
     '''
+
  
     embeddings_tensor = torch.tensor(embeddings, dtype=torch.float32)
 
