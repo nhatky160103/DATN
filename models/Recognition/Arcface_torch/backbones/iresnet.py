@@ -214,11 +214,11 @@ if __name__ == "__main__":
     # Lặp 100 lần và tính thời gian
     with torch.no_grad():
         start = time.time()
-        for _ in range(100):
+        for _ in range(10):
             y = model(img)
         end = time.time()
 
-    infer_time = (end - start) / 100
+    infer_time = (end - start) / 10
 
     # Kết quả
     print(f'Trung bình infer_time: {infer_time:.6f} giây')

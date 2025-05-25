@@ -40,6 +40,27 @@ class Mxnet_model_interf:
         return emb
 
 
+class Torch_state_dict_model_interf:
+    def __init__(self, model_file, image_size=(112, 112)):
+        import torch
+        from backbones import get_model  # Đảm bảo import đúng hàm tạo model của bạn
+        self.torch = torch
+        cvd = os.environ.get("CUDA_VISIBLE_DEVICES", "").strip()
+        device_name = "cuda:0" if len(cvd) > 0 and int(cvd) != -1 else "cpu"
+        self.device = self.torch.device(device_name)
+        # Tạo model đúng kiến trúc, chỉnh lại nếu bạn dùng model khác
+        self.model = get_model('r100', num_features=512)
+        self.model.load_state_dict(torch.load(model_file, map_location=device_name))
+        self.model.eval()
+        self.model.to(self.device)
+    def __call__(self, imgs):
+        imgs = imgs.transpose(0, 3, 1, 2).copy().astype("float32")
+        imgs = (imgs - 127.5) * 0.0078125
+        with self.torch.no_grad():
+            output = self.model(self.torch.from_numpy(imgs).to(self.device).float())
+        return output.cpu().detach().numpy()
+
+
 class Torch_model_interf:
     def __init__(self, model_file, image_size=(112, 112)):
         import torch
@@ -358,7 +379,7 @@ class IJB_test:
             if model_file.endswith(".h5"):
                 interf_func = keras_model_interf(model_file)
             elif model_file.endswith(".pth") or model_file.endswith(".pt"):
-                interf_func = Torch_model_interf(model_file)
+                interf_func = Torch_state_dict_model_interf(model_file)
             elif model_file.endswith(".onnx") or model_file.endswith(".ONNX"):
                 interf_func = ONNX_model_interf(model_file)
             else:

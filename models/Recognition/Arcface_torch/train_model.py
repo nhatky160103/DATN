@@ -212,17 +212,19 @@ def main(args):
 
                 if global_step % cfg.verbose == 0 and global_step > 0:
                     callback_verification(global_step, backbone)
-
-        if cfg.save_all_states:
-            checkpoint = {
-                "epoch": epoch + 1,
-                "global_step": global_step,
-                "state_dict_backbone": backbone.module.state_dict(),
-                "state_dict_softmax_fc": module_partial_fc.state_dict(),
-                "state_optimizer": opt.state_dict(),
-                "state_lr_scheduler": lr_scheduler.state_dict()
-            }
-            torch.save(checkpoint, os.path.join(cfg.output, f"checkpoint_gpu_{rank}.pt"))
+                    if cfg.save_all_states:
+                        checkpoint = {
+                            "epoch": epoch + 1,
+                            "global_step": global_step,
+                            "state_dict_backbone": backbone.module.state_dict(),
+                            "state_dict_softmax_fc": module_partial_fc.state_dict(),
+                            "state_optimizer": opt.state_dict(),
+                            "state_lr_scheduler": lr_scheduler.state_dict()
+                        }
+                        # Lưu checkpoint cho resume (luôn ghi đè)
+                        torch.save(checkpoint, os.path.join(cfg.output, f"checkpoint_gpu_{rank}.pt"))
+                        # Lưu checkpoint lịch sử (chỉ lưu state_dict backbone, không lưu trạng thái khác)
+                        torch.save(backbone.module.state_dict(), os.path.join(cfg.output, f"checkpoint_step_{global_step}_gpu_{rank}.pt"))
 
         if rank == 0:
             path_module = os.path.join(cfg.output, "model.pt")
@@ -250,8 +252,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-    # torch.backends.cudnn.benchmark = True
-    # parser = argparse.ArgumentParser(
-    #     description="Distributed Arcface Training in Pytorch")
-    # parser.add_argument("config", type=str, help="py config file")
-    # main(parser.parse_args())
+    torch.backends.cudnn.benchmark = True
+    parser = argparse.ArgumentParser(
+        description="Distributed Arcface Training in Pytorch")
+    parser.add_argument("config", type=str, help="py config file")
+    main(parser.parse_args())

@@ -313,7 +313,7 @@ def read_score(path):
 
 # In[ ]:
 
-assert target == 'IJBC' or target == 'IJBB'
+assert target == '  ' or target == 'IJBB'
 
 # =============================================================
 # load image and template relationships for template feature embedding

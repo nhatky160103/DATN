@@ -40,10 +40,10 @@ def create_embeddings_from_folder(model, parent_folder, save_dir="local_embeddin
 
     for person_id in tqdm(person_folders, desc="Processing persons"):
         folder_path = os.path.join(parent_folder, person_id)
-        image_paths = glob(os.path.join(folder_path, "*"))
+        image_paths = sorted(glob(os.path.join(folder_path, "*")))[:4]  # Lấy tối đa 4 ảnh đầu tiên
         aligned = []
 
-        for img_path in image_paths:
+        for i, img_path in enumerate(image_paths):
             try:
                 image = Image.open(img_path).convert("RGB")
                 x_aligned = mtcnn(image)
@@ -65,7 +65,6 @@ def create_embeddings_from_folder(model, parent_folder, save_dir="local_embeddin
 
             except Exception as e:
                 print(f" Error loading or processing {img_path}: {e}")
-
         if not aligned:
             print(f" No valid images found in {folder_path}")
             continue

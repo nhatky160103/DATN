@@ -68,7 +68,7 @@ function startCameraMonitoring() {
             .catch(error => {
                 console.error("Polling error:", error);
             });
-    }, 50); // Kiểm tra mỗi 0.1 giây
+    }, 50); 
 }
 
 function getResults(dataFromPolling = null) {
@@ -79,16 +79,13 @@ function getResults(dataFromPolling = null) {
         if (data.status === 'no_results') {
             nameSpan.textContent = "UNKNOWN";
             timeSpan.textContent = "0000:00:00 00:00:00";
-        } else if (data.status === 'error') {
-            nameSpan.textContent = "--";
-            timeSpan.textContent = `Error: ${data.message}`;
         } else {
             nameSpan.textContent = data.employee_id;
             timeSpan.textContent = new Date(data.time * 1000).toLocaleString();
             console.log("✅ Nhận diện:", data.employee_id, data.time);
         }
 
-        // Reset sau 2 giây
+        // Reset sau 3 giây
         setTimeout(() => {
             nameSpan.textContent = "--";
             timeSpan.textContent = "--";
@@ -97,6 +94,7 @@ function getResults(dataFromPolling = null) {
 
     if (dataFromPolling) {
         renderResult(dataFromPolling);
+        closeCamera(); 
     } else {
         fetch('/get_results')
             .then(response => response.json())
@@ -174,29 +172,22 @@ function createNewBucket() {
         showToast("❌ Please enter a bucket name!", true);
         return;
     }
+    if (!logoFile) {
+        showToast("❌ Please select logo image!", true);
+        return;
+    }
 
     loadingOverlay.style.display = 'flex';
 
     let fetchOptions;
-    if (logoFile) {
-        // Gửi form-data nếu có file logo
-        const formData = new FormData();
-        formData.append('bucket_name', bucketName);
-        formData.append('logo', logoFile);
-        fetchOptions = {
-            method: 'POST',
-            body: formData
-        };
-    } else {
-        // Gửi JSON như cũ nếu không có logo
-        fetchOptions = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ bucket_name: bucketName })
-        };
-    }
+    // Chỉ còn nhánh có logoFile
+    const formData = new FormData();
+    formData.append('bucket_name', bucketName);
+    formData.append('logo', logoFile);
+    fetchOptions = {
+        method: 'POST',
+        body: formData
+    };
 
     fetch('/create_bucket', fetchOptions)
     .then(response => response.json())
