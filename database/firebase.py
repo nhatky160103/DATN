@@ -3,6 +3,7 @@ import firebase_admin
 from firebase_admin import credentials, db
 import time
 from datetime import datetime
+import shutil
 
 from .timeKeeping import create_daily_timekeeping
 from .cloudinary import  (upload_folder_to_cloudinary, 
@@ -226,8 +227,22 @@ def delete_bucket(bucket_name):
 
     cloudinary_ok = delete_bucket_from_cloudinary(bucket_name)
 
-    if firebase_ok and cloudinary_ok:
-        print(f"✅ Successfully deleted bucket '{bucket_name}' from both Firebase and Cloudinary.")
+    # Xóa local embedding folder
+    local_embedding_dir = os.path.join("local_embeddings", bucket_name)
+    if os.path.exists(local_embedding_dir):
+        try:
+            shutil.rmtree(local_embedding_dir)
+            print(f"🗑️ Deleted local embeddings folder: {local_embedding_dir}")
+            local_ok = True
+        except Exception as e:
+            print(f"⚠️ Failed to delete local embeddings folder: {e}")
+            local_ok = False
+    else:
+        print(f"ℹ️ No local embeddings folder found for '{bucket_name}'")
+        local_ok = True
+
+    if firebase_ok and cloudinary_ok and local_ok:
+        print(f"✅ Successfully deleted bucket '{bucket_name}' from Firebase, Cloudinary, and local embeddings.")
         return True
     return False
     

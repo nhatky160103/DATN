@@ -5,7 +5,7 @@ import argparse
 # Hàm thiết lập và phân tích các tham số dòng lệnh
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Tạo file pairs.txt tương tự LFW từ dataset tùy chỉnh.")
-    parser.add_argument("--dataset_path", type=str, default="custom_dataset",
+    parser.add_argument("--dataset_path", type=str, default="models/Recognition/Arcface_torch/dataset/VN-celeb-mini",
                         help="Đường dẫn đến thư mục chứa dataset (mặc định: custom_dataset)")
     parser.add_argument("--num_folds", type=int, default=10,
                         help="Số lượng folds (mặc định: 10)")

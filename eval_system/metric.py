@@ -80,7 +80,8 @@ def evaluate_recognition_system(
     l2_threshold=1.0,
     cosine_threshold=0.4,
     show_plot=True,
-    save_dir="evaluation_results"
+    save_dir="evaluation_results",
+    device=None
 ):
     os.makedirs(save_dir, exist_ok=True)
 
@@ -92,6 +93,11 @@ def evaluate_recognition_system(
         d for d in os.listdir(parent_folder)
         if os.path.isdir(os.path.join(parent_folder, d))
     ])
+
+    # Nếu device không truyền vào thì lấy device cũ
+    if device is None:
+        from infer.utils import device as default_device
+        device = default_device
 
     for person_id in tqdm(person_folders, desc="Evaluating"):
         folder_path = os.path.join(parent_folder, person_id)
@@ -211,7 +217,7 @@ if __name__ == "__main__":
     roc_curves = []  # Lưu các giá trị fpr, tpr, roc_auc, threshold
     thresholds = [0.5, 0.6, 0.7, 0.8, 0.9]
     for cosine_threshold in thresholds:
-        save_dir = f"evaluation_results_cosine_{cosine_threshold}"
+        save_dir = f"eval_system/evaluation_results_cosine_{cosine_threshold}"
         print(f"\n=== Đánh giá với cosine_threshold = {cosine_threshold} ===")
         metrics = evaluate_recognition_system(
             model,
@@ -251,5 +257,6 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("all_roc_curves.png")
+    
+    plt.savefig(os.path.join('eval_system', "all_roc_curves.png"))
     plt.show()

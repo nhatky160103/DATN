@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from backbones import get_model
 from dataset import get_dataloader
-from losses import CombinedMarginLoss
+from losses import CombinedMarginLoss, CombinedDynamicMarginLoss
 from lr_scheduler import PolynomialLRWarmup
 from partial_fc_v2 import PartialFC_V2
 from torch import distributed
@@ -104,7 +104,7 @@ def main(args):
     # FIXME using gradient checkpoint if there are some unused parameters will cause error
     backbone._set_static_graph()
 
-    margin_loss = CombinedMarginLoss(
+    margin_loss = CombinedDynamicMarginLoss(
         64,
         cfg.margin_list[0],
         cfg.margin_list[1],
@@ -173,11 +173,20 @@ def main(args):
     loss_am = AverageMeter()
     amp = torch.cuda.amp.grad_scaler.GradScaler(growth_interval=100)
 
+    steps_per_epoch = cfg.num_image // cfg.total_batch_size
+    start_step_in_epoch = global_step % steps_per_epoch
+    
     for epoch in range(start_epoch, cfg.num_epoch):
 
         if isinstance(train_loader, DataLoader):
             train_loader.sampler.set_epoch(epoch)
-        for _, (img, local_labels) in enumerate(train_loader):
+           
+        for batch_idx, (img, local_labels) in enumerate(train_loader):
+
+            if epoch == start_epoch and batch_idx < start_step_in_epoch:
+                continue
+                
+
             global_step += 1
             local_embeddings = backbone(img)
             loss: torch.Tensor = module_partial_fc(local_embeddings, local_labels)
@@ -214,7 +223,7 @@ def main(args):
                     callback_verification(global_step, backbone)
                     if cfg.save_all_states:
                         checkpoint = {
-                            "epoch": epoch + 1,
+                            "epoch": epoch,
                             "global_step": global_step,
                             "state_dict_backbone": backbone.module.state_dict(),
                             "state_dict_softmax_fc": module_partial_fc.state_dict(),
@@ -238,6 +247,17 @@ def main(args):
                 
         if cfg.dali:
             train_loader.reset()
+        if cfg.save_all_states:
+            checkpoint = {
+                "epoch": epoch+1,
+                "global_step": global_step,
+                "state_dict_backbone": backbone.module.state_dict(),
+                "state_dict_softmax_fc": module_partial_fc.state_dict(),
+                "state_optimizer": opt.state_dict(),
+                "state_lr_scheduler": lr_scheduler.state_dict()
+            }
+            # Lưu checkpoint cho resume (luôn ghi đè)
+            torch.save(checkpoint, os.path.join(cfg.output, f"checkpoint_gpu_{rank}.pt"))
 
     if rank == 0:
         path_module = os.path.join(cfg.output, "model.pt")

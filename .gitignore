@@ -7,7 +7,7 @@ __pycache__/
 .env
 database/ServiceAccountKey.json
 
-
+results/
 weights/
 pretrained/
 retinaface-R50/

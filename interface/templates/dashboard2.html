@@ -101,8 +101,14 @@
     <div class="content">
       <header class="topbar">
         <button class="toggle-btn" id="sidebarToggle" aria-label="Toggle Sidebar">&#9776;</button>
-        <div class="search">
-          <input type="text" placeholder="Search..." aria-label="Search" />
+        <!-- Decorative icon instead of search/decor bar -->
+        <div style="display: flex; align-items: center; justify-content: center;">
+          <img src="{{ url_for('static', filename='assets/title_gif.gif') }}" alt="Decorative wave" style="max-height: 40px; border-radius: 8px; box-shadow: 0 2px 12px rgba(24,90,157,0.10);">
+          <img src="{{ url_for('static', filename='assets/title_gif.gif') }}" alt="Decorative wave" style="max-height: 40px; border-radius: 8px; box-shadow: 0 2px 12px rgba(24,90,157,0.10); margin-left: 8px;">
+          <img src="{{ url_for('static', filename='assets/title_gif.gif') }}" alt="Decorative wave" style="max-height: 40px; border-radius: 8px; box-shadow: 0 2px 12px rgba(24,90,157,0.10); margin-left: 8px;">
+          <img src="{{ url_for('static', filename='assets/title_gif.gif') }}" alt="Decorative wave" style="max-height: 40px; border-radius: 8px; box-shadow: 0 2px 12px rgba(24,90,157,0.10); margin-left: 8px;">
+          <img src="{{ url_for('static', filename='assets/title_gif.gif') }}" alt="Decorative wave" style="max-height: 40px; border-radius: 8px; box-shadow: 0 2px 12px rgba(24,90,157,0.10); margin-left: 8px;">
+          <img src="{{ url_for('static', filename='assets/title_gif.gif') }}" alt="Decorative wave" style="max-height: 40px; border-radius: 8px; box-shadow: 0 2px 12px rgba(24,90,157,0.10); margin-left: 8px;">
         </div>
         <div class="actions">
           <button id="notificationBtn" aria-label="Notifications" title="Notifications" style="position: relative;">

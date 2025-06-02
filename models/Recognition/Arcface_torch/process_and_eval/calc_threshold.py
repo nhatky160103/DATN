@@ -46,7 +46,7 @@ def load_bin(path, image_size):
     print(data_list[0].shape)
     return data_list, issame_list
 
-data_list, issame_list = load_bin('models/Recognition/Arcface_torch/dataset/VN-celeb.bin', (112, 112))
+data_list, issame_list = load_bin('models/Recognition/Arcface_torch/dataset/VN-celeb-mini.bin', (112, 112))
 
 
 def get_embeddings(data_list, model, batch_size=512):

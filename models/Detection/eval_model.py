@@ -41,4 +41,4 @@ if __name__ == "__main__":
     image_path = 'data/img1.jpg'
     image = Image.open(image_path).convert('RGB')
 
-    profile_mtcnn(mtcnn, image, device='cpu', repeat=100)
+    profile_mtcnn(mtcnn, image, device='cpu', repeat=50)

@@ -40,6 +40,7 @@ function renderNotifications() {
 
     li.addEventListener('click', () => {
       alert(`${msg}`);
+      // showToast(msg, 'info');
       notifications.splice(idx, 1);
       renderNotifications();
     });
@@ -143,6 +144,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('employeeForm');
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+
+    // Kiểm tra nếu chưa có ảnh upload hoặc capture
+    if (capturedBlobs.length === 0 && selectedFiles.length === 0) {
+      showToast('❌ Please capture or upload photo!', 'error');
+      return;
+    }
 
     loadingOverlay.style.display = 'flex';  // ✅ Hiện overlay khi submit
 

@@ -163,7 +163,7 @@ class MXFaceDataset(Dataset):
         label = header.label
         if not isinstance(label, numbers.Number):
             label = label[0]
-        label = torch.tensor(label, dtype=torch.long)
+        label = torch.tensor(int(label), dtype=torch.long)
         sample = mx.image.imdecode(img).asnumpy()
         if self.transform is not None:
             sample = self.transform(sample)
@@ -248,7 +248,7 @@ def dali_data_iter(
         jpegs, labels = fn.readers.mxnet(
             path=rec_file, index_path=idx_file, initial_fill=initial_fill, 
             num_shards=world_size, shard_id=rank,
-            random_shuffle=random_shuffle, pad_last_batch=False, name=name)
+            random_shuffle=random_shuffle, pad_last_batch=True, name=name)
         images = fn.decoders.image(jpegs, device="mixed", output_type=types.RGB)
         if dali_aug:
             images = fn.cast(images, dtype=types.UINT8)

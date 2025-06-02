@@ -778,6 +778,12 @@ opacity: 1;
 visibility: visible;
 }
 
+.toast.info {
+  background-color: #2196f3;
+  color: #fff;
+  opacity: 1;
+}
+
 /* ============ LOADING OVERLAY ============ */
 #loading-overlay {
 display: none;
