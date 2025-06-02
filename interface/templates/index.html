@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance system</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="main-page">
+        <h1 class="welcome-title">👋 Welcome to Smart Attendance</h1>
+
+        <div class="info-box">
+            <p><strong>👤 Name:</strong> <span id="name">--</span></p>
+            <p><strong>⏰ Time:</strong> <span id="time">--</span></p>
+        </div>
+
+        <div class="controls">
+            <button onclick="toggleCamera()">🎥 Open Camera</button>
+            <select id="bucketSelect">
+                {% for bucket in buckets %}
+                    <option value="{{ bucket }}" {% if bucket == selected_bucket %}selected{% endif %}>
+                        {{ bucket }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <div class="button_container">
+                <a href="/dashboard" target="_blank">
+                    <button>📊 Open Dashboard</button>
+                </a>
+                <button onclick="openNewBucketModal()">📦 New bucket</button>
+            </div>
+        </div>
+
+        <div id="loading-overlay" >⏳ Uploading, please wait...</div>
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- Modal nhập bucket -->
+        <div id="newBucketModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closeNewBucketModal()">&times;</span>
+                <h2>Create New Bucket</h2>
+                <input type="text" id="bucketNameInput" placeholder="Enter bucket name">
+                <input type="file" id="bucketLogoInput" accept="image/*"> 
+                <button onclick="createNewBucket()">Create</button>
+            </div>
+        </div>
+
+
+        <!-- Modal hiển thị camera -->
+        <div id="cameraModal" class="camera-modal hidden">
+            <div class="camera-content">
+                <span class="close-btn" onclick="closeCamera()">&times;</span>
+                <div id="loadingSpinner" class="spinner"></div>
+                <img id="cameraFeed" />
+            </div>
+        </div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
