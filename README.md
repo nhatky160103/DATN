@@ -9,43 +9,42 @@
 
 ## Tóm tắt
 
-Đồ án này tập trung vào việc xây dựng một **hệ thống chấm công tự động dựa trên nhận diện khuôn mặt** sử dụng các mô hình Deep Learning tiên tiến [3, 4]. Hệ thống giải quyết những hạn chế của phương pháp chấm công thủ công (tốn thời gian, dễ gian lận) và các hệ thống nhận diện khuôn mặt hiện tại (dễ bị tấn công giả mạo, tốc độ xử lý, yêu cầu pipeline hoàn chỉnh) [3-7].
+Đồ án này tập trung vào việc xây dựng một **hệ thống chấm công tự động dựa trên nhận diện khuôn mặt** sử dụng các mô hình Deep Learning tiên tiến. Hệ thống giải quyết những hạn chế của phương pháp chấm công thủ công (tốn thời gian, dễ gian lận) và các hệ thống nhận diện khuôn mặt hiện tại (dễ bị tấn công giả mạo, tốc độ xử lý, yêu cầu pipeline hoàn chỉnh).
 
-Giải pháp được đề xuất bao gồm một **pipeline xử lý hoàn chỉnh** gồm tiền xử lý ảnh (phát hiện, căn chỉnh khuôn mặt), kiểm tra chống giả mạo, trích xuất đặc trưng bằng mô hình học sâu với mạng xương sống (backbone) được tùy chỉnh, và so khớp vector nhúng [8, 9]. Hệ thống được tối ưu hóa về hiệu năng xử lý, đạt tốc độ nhận diện nhanh, độ chính xác cao và có khả năng tùy chỉnh linh hoạt [10, 11].
+Giải pháp được đề xuất bao gồm một **pipeline xử lý hoàn chỉnh** gồm tiền xử lý ảnh (phát hiện, căn chỉnh khuôn mặt), kiểm tra chống giả mạo, trích xuất đặc trưng bằng mô hình học sâu với mạng xương sống (backbone) được tùy chỉnh, và so khớp vector nhúng. Hệ thống được tối ưu hóa về hiệu năng xử lý, đạt tốc độ nhận diện nhanh, độ chính xác cao và có khả năng tùy chỉnh linh hoạt.
 
-Đóng góp chính của đồ án là **huấn luyện mô hình trích xuất đặc trưng khuôn mặt với số lượng tham số nhỏ** sử dụng hàm loss được cải tiến (CDML) và xây dựng hoàn chỉnh hệ thống chấm công bằng nhận diện khuôn mặt chống giả mạo, đạt hiệu suất cao, phù hợp với yêu cầu triển khai thực tế [10, 11].
+Đóng góp chính của đồ án là **huấn luyện mô hình trích xuất đặc trưng khuôn mặt với số lượng tham số nhỏ** sử dụng hàm loss được cải tiến (CDML) và xây dựng hoàn chỉnh hệ thống chấm công bằng nhận diện khuôn mặt chống giả mạo, đạt hiệu suất cao, phù hợp với yêu cầu triển khai thực tế.
 
 ## Bài toán
 
-Bài toán chấm công thủ công truyền thống gặp nhiều hạn chế như tốn thời gian, dễ gian lận, và khó kiểm soát số liệu [5]. Các hệ thống chấm công tự động bằng nhận diện khuôn mặt hiện có vẫn còn tiềm ẩn nguy cơ gian lận khi đối tượng có thể giả mạo khuôn mặt bằng ảnh hoặc video [3, 4, 6]. Bên cạnh đó, các hệ thống này còn đối mặt với thách thức về độ chính xác trong điều kiện thực tế (ánh sáng yếu, thay đổi ngoại hình, góc độ), tốc độ xử lý và yêu cầu một pipeline tích hợp đầy đủ các bước [3, 4, 6, 7].
+Bài toán chấm công thủ công truyền thống gặp nhiều hạn chế như tốn thời gian, dễ gian lận, và khó kiểm soát số liệu. Các hệ thống chấm công tự động bằng nhận diện khuôn mặt hiện có vẫn còn tiềm ẩn nguy cơ gian lận khi đối tượng có thể giả mạo khuôn mặt bằng ảnh hoặc video. Bên cạnh đó, các hệ thống này còn đối mặt với thách thức về độ chính xác trong điều kiện thực tế (ánh sáng yếu, thay đổi ngoại hình, góc độ), tốc độ xử lý và yêu cầu một pipeline tích hợp đầy đủ các bước.
 
 ## Giải pháp đề xuất
 
 Đồ án đề xuất xây dựng hệ thống chấm công bằng nhận diện khuôn mặt ứng dụng Deep Learning với các đặc điểm chính:
-*   Sử dụng phương pháp **học không gian nhúng (Embedding Learning)** để trích xuất đặc trưng khuôn mặt [12, 13].
-*   Dựa trên mô hình **ArcFace** - một phương pháp state-of-the-art, đồng thời **điều chỉnh backbone và hàm loss** để tối ưu hóa độ chính xác và tốc độ [8, 9, 12, 14].
-*   Đề xuất hàm mất mát **Combined Dynamic Margin Loss (CDML)**, mở rộng từ ArcFace bằng cách áp dụng margin động dựa trên độ khó của từng mẫu, giúp tăng khả năng phân biệt giữa các lớp [15-19].
-*   Sử dụng kiến trúc mạng xương sống **IResNet** và các biến thể **IResNet_Lite** (r18_lite, r34_lite, r50_lite, r100_lite, r200_lite) với số lượng tham số nhỏ, phù hợp cho triển khai trên thiết bị tài nguyên hạn chế [16, 20-25].
-*   Xây dựng **pipeline xử lý hoàn chỉnh** bao gồm thu nhận ảnh, phát hiện và căn chỉnh khuôn mặt (sử dụng MTCNN/BlazeFace), kiểm tra chống giả mạo (sử dụng FASNet/MiniFASNet), trích xuất đặc trưng và so khớp vector nhúng [8, 9, 26-32].
-*   Tích hợp với cơ sở dữ liệu **Firebase Realtime Database** để quản lý thông tin nhân sự, lịch sử chấm công và cấu hình hệ thống [10, 11, 27, 28, 33-37].
-*   Lưu trữ ảnh và vector đặc trưng trên **Cloudinary** [28, 33, 35, 36, 38].
+*   Sử dụng phương pháp **học không gian nhúng (Embedding Learning)** để trích xuất đặc trưng khuôn mặt.
+*   Dựa trên mô hình **ArcFace** - một phương pháp state-of-the-art, đồng thời **điều chỉnh backbone và hàm loss** để tối ưu hóa độ chính xác và tốc độ.
+*   Đề xuất hàm mất mát **Combined Dynamic Margin Loss (CDML)**, mở rộng từ ArcFace bằng cách áp dụng margin động dựa trên độ khó của từng mẫu, giúp tăng khả năng phân biệt giữa các lớp.
+*   Sử dụng kiến trúc mạng xương sống **IResNet** và các biến thể **IResNet_Lite** (r18_lite, r34_lite, r50_lite, r100_lite, r200_lite) với số lượng tham số nhỏ, phù hợp cho triển khai trên thiết bị tài nguyên hạn chế.
+*   Xây dựng **pipeline xử lý hoàn chỉnh** bao gồm thu nhận ảnh, phát hiện và căn chỉnh khuôn mặt (sử dụng MTCNN/BlazeFace), kiểm tra chống giả mạo (sử dụng FASNet/MiniFASNet), trích xuất đặc trưng và so khớp vector nhúng.
+*   Tích hợp với cơ sở dữ liệu **Firebase Realtime Database** để quản lý thông tin nhân sự, lịch sử chấm công và cấu hình hệ thống.
+*   Lưu trữ ảnh và vector đặc trưng trên **Cloudinary**.
 
 ## Kiến trúc hệ thống
 
-Hệ thống được thiết kế theo mô hình pipeline xử lý các khung hình từ camera [28].
+Hệ thống được thiết kế theo mô hình pipeline xử lý các khung hình từ camera.
 
-![Luồng hoạt động của hệ thống](path/to/flowchart.png)
 
-*(Bạn sẽ thêm hình ảnh Hình 4.1 vào đây)*
+![Luồng hoạt động của hệ thống](image_resources/pipeline.png)
 
 Các thành phần chính bao gồm:
-1.  **Thu nhận ảnh đầu vào (Collect frame):** Lấy mẫu khung hình từ webcam, kiểm tra chất lượng (diện tích khuôn mặt, căn giữa) [39-41]. Sử dụng BlazeFace để phát hiện và căn chỉnh khuôn mặt nhanh trong giai đoạn này [29].
-2.  **Kiểm tra chống giả mạo (Anti-spoofing):** Sử dụng mô hình FASNet/MiniFASNet để phát hiện khuôn mặt giả mạo (ảnh in, video, mặt nạ) [30, 42, 43].
-3.  **Phát hiện và chuẩn hóa khuôn mặt:** Sử dụng MTCNN để phát hiện chính xác vùng khuôn mặt và các điểm đặc trưng (landmarks), sau đó chuẩn hóa kích thước ảnh về (112, 112) [31, 44].
-4.  **Trích xuất đặc trưng (Embedding):** Đưa ảnh khuôn mặt đã chuẩn hóa qua mô hình được huấn luyện (IResNet_Lite + CDML) để thu được vector đặc trưng 512 chiều [32].
-5.  **Đối sánh và xác định danh tính (Identification):** So sánh vector đặc trưng truy vấn với cơ sở dữ liệu vector đã lưu trữ bằng độ đo Cosine similarity hoặc Euclidean distance. Xác định danh tính dựa trên khoảng cách trung bình nhỏ nhất tới các vector trong từng lớp [45-47].
-6.  **Kiểm tra xác thực từng frame (Check validation):** Tổng hợp kết quả từ nhiều frame hợp lệ để đưa ra quyết định cuối cùng về danh tính, sử dụng ngưỡng xác nhận [36, 48, 49].
-7.  **Lưu trữ và tích hợp hệ thống:** Lưu trữ vector embedding và ảnh đại diện trên Cloudinary, thông tin nhân sự và lịch sử chấm công trên Firebase Realtime Database [36-38].
+1.  **Thu nhận ảnh đầu vào (Collect frame):** Lấy mẫu khung hình từ webcam, kiểm tra chất lượng (diện tích khuôn mặt, căn giữa). Sử dụng BlazeFace để phát hiện và căn chỉnh khuôn mặt nhanh trong giai đoạn này.
+2.  **Kiểm tra chống giả mạo (Anti-spoofing):** Sử dụng mô hình FASNet/MiniFASNet để phát hiện khuôn mặt giả mạo (ảnh in, video, mặt nạ).
+3.  **Phát hiện và chuẩn hóa khuôn mặt:** Sử dụng MTCNN để phát hiện chính xác vùng khuôn mặt và các điểm đặc trưng (landmarks), sau đó chuẩn hóa kích thước ảnh về (112, 112).
+4.  **Trích xuất đặc trưng (Embedding):** Đưa ảnh khuôn mặt đã chuẩn hóa qua mô hình được huấn luyện (IResNet_Lite + CDML) để thu được vector đặc trưng 512 chiều.
+5.  **Đối sánh và xác định danh tính (Identification):** So sánh vector đặc trưng truy vấn với cơ sở dữ liệu vector đã lưu trữ bằng độ đo Cosine similarity hoặc Euclidean distance. Xác định danh tính dựa trên khoảng cách trung bình nhỏ nhất tới các vector trong từng lớp.
+6.  **Kiểm tra xác thực từng frame (Check validation):** Tổng hợp kết quả từ nhiều frame hợp lệ để đưa ra quyết định cuối cùng về danh tính, sử dụng ngưỡng xác nhận.
+7.  **Lưu trữ và tích hợp hệ thống:** Lưu trữ vector embedding và ảnh đại diện trên Cloudinary, thông tin nhân sự và lịch sử chấm công trên Firebase Realtime Database.
 
 ## Kết quả thực nghiệm
 
@@ -53,9 +52,9 @@ Phần này trình bày các kết quả đánh giá mô hình trích xuất đ�
 
 ### So sánh hiệu năng giữa các hàm mất mát
 
-Đồ án so sánh hàm mất mát CDML với các hàm mất mát khác (ArcFace, CosFace, Softmax, v.v.) khi huấn luyện mô hình với mạng xương sống **ResNet50** trên tập dữ liệu **CASIA-WebFace** [50, 51].
+Đồ án so sánh hàm mất mát CDML với các hàm mất mát khác (ArcFace, CosFace, Softmax, v.v.) khi huấn luyện mô hình với mạng xương sống **ResNet50** trên tập dữ liệu **CASIA-WebFace**.
 
-**Bảng 5.1: Độ chính xác (%) trên các tập xác thực của các hàm mất mát khác nhau ([CASIA, ResNet50, Loss*])** [52]
+**Bảng 5.1: Độ chính xác (%) trên các tập xác thực của các hàm mất mát khác nhau**
 
 | Loss Functions              | LFW   | CFP-FP | AgeDB |
 | :-------------------------- | :---- | :----- | :---- |
@@ -64,9 +63,9 @@ Phần này trình bày các kết quả đánh giá mô hình trích xuất đ�
 | ArcFace (0.45)              | 99.46 | 95.47  | 94.93 |
 | ArcFace (0.5)               | 99.53 | 95.56  | 95.15 |
 | ArcFace (0.55)              | 99.41 | 95.32  | 95.05 |
-| SphereFace [9]              | 99.42 | –      | –     |
+| SphereFace                  | 99.42 | –      | –     |
 | SphereFace (1.35)           | 99.11 | 94.38  | 91.70 |
-| CosFace [2]                 | 99.33 | –      | –     |
+| CosFace                     | 99.33 | –      | –     |
 | CosFace (0.35)              | 99.51 | 95.44  | 94.56 |
 | CM1 (1, 0.3, 0.2)           | 99.48 | 95.12  | 94.38 |
 | CM2 (0.9, 0.4, 0.15)        | 99.50 | 95.24  | 94.86 |
@@ -82,13 +81,13 @@ Phần này trình bày các kết quả đánh giá mô hình trích xuất đ�
 | ArcFace + Intra + Inter     | 99.43 | 95.42  | 95.10 |
 | ArcFace + Triplet           | 99.50 | 95.51  | 94.40 |
 
-Kết quả cho thấy **CDML đạt độ chính xác khá cao** trên LFW (99.58%) và AgeDB (96.62%), tương đương hoặc cao hơn một số phương pháp hiện có như ArcFace và CosFace [51].
+Kết quả cho thấy **CDML đạt độ chính xác khá cao** trên LFW (99.58%) và AgeDB (96.62%), tương đương hoặc cao hơn một số phương pháp hiện có như ArcFace và CosFace.
 
 ### Đánh giá với các Backbone nhẹ trên CASIA-WebFace
 
-Đánh giá so sánh hàm mất mát CDML và ArcFace trên các backbone nhẹ hơn là **r18_lite** và **r50_lite**, huấn luyện trên **CASIA-WebFace** [53].
+Đánh giá so sánh hàm mất mát CDML và ArcFace trên các backbone nhẹ hơn là **r18_lite** và **r50_lite**, huấn luyện trên **CASIA-WebFace**.
 
-**Bảng 5.2: So sánh độ chính xác (%) của các mô hình trên các tập kiểm thử, với bộ dữ liệu huấn luyện là CASIA-WEBFACE** [54]
+**Bảng 5.2: So sánh độ chính xác (%) của các mô hình trên các tập kiểm thử, với bộ dữ liệu huấn luyện là CASIA-WEBFACE**
 
 | Dataset | r18_lite        |           | r50_lite        |           |
 | :------ | :-------------- | :-------- | :-------------- | :-------- |
@@ -100,13 +99,13 @@ Kết quả cho thấy **CDML đạt độ chính xác khá cao** trên LFW (99.
 | CPLFW   | 85.13 ± 1.78    | 85.48 ± 2.49 | 86.57 ± 2.04    | 88.08 ± 1.89 |
 | AgeDB   | 92.12 ± 1.19    | 92.22 ± 2.09 | 90.88 ± 2.10    | 93.85 ± 1.26 |
 
-Khi sử dụng backbone **r50_lite**, CDML cho hiệu quả nổi bật hơn ArcFace trên tất cả các tập kiểm thử. Trên r18_lite, CDML cho kết quả tương đương hoặc nhỉnh hơn nhẹ so với ArcFace [55, 56]. CDML thể hiện tiềm năng vượt trội về độ chính xác khi kết hợp với các backbone mạnh hơn [56].
+Khi sử dụng backbone **r50_lite**, CDML cho hiệu quả nổi bật hơn ArcFace trên tất cả các tập kiểm thử. Trên r18_lite, CDML cho kết quả tương đương hoặc nhỉnh hơn nhẹ so với ArcFace. CDML thể hiện tiềm năng vượt trội về độ chính xác khi kết hợp với các backbone mạnh hơn.
 
 ### Đánh giá mô hình huấn luyện trên MS1MV3
 
-Đồ án huấn luyện các mô hình r50_lite và r100_lite trên tập dữ liệu lớn hơn là **MS1MV3** để tăng độ chính xác [57, 58].
+Đồ án huấn luyện các mô hình r50_lite và r100_lite trên tập dữ liệu lớn hơn là **MS1MV3** để tăng độ chính xác.
 
-**Bảng 5.3: So sánh độ chính xác (%) của các mô hình r50_lite và r100_lite trên các tập kiểm thử, với bộ dữ liệu huấn luyện là MS1MV3** [59]
+**Bảng 5.3: So sánh độ chính xác (%) của các mô hình r50_lite và r100_lite trên các tập kiểm thử, với bộ dữ liệu huấn luyện là MS1MV3**
 
 | Dataset   | r50_lite     | r100_lite    |
 | :-------- | :----------- | :----------- |
@@ -117,11 +116,11 @@ Khi sử dụng backbone **r50_lite**, CDML cho hiệu quả nổi bật hơn Ar
 | CPLFW     | 88.83 ± 1.63 | 89.08 ± 1.85 |
 | AgeDB-30  | 96.35 ± 0.94 | 95.95 ± 0.91 |
 
-Cả hai mô hình r50_lite và r100_lite đều đạt **độ chính xác khá cao** trên hầu hết các tập kiểm thử, chứng tỏ khả năng nhận diện mạnh mẽ khi huấn luyện trên MS1MV3 [59].
+Cả hai mô hình r50_lite và r100_lite đều đạt **độ chính xác khá cao** trên hầu hết các tập kiểm thử, chứng tỏ khả năng nhận diện mạnh mẽ khi huấn luyện trên MS1MV3.
 
-Đánh giá trên các tập chuẩn **IJB-B** và **IJB-C** cho tác vụ verification (độ chính xác 1:1) [60].
+Đánh giá trên các tập chuẩn **IJB-B** và **IJB-C** cho tác vụ verification (độ chính xác 1:1).
 
-**Bảng 5.4: 1:1 Độ chính xác (TPR@FPR=1e-4) trên dataset IJB-B và IJB-C với task verification** [60]
+**Bảng 5.4: 1:1 Độ chính xác (TPR@FPR=1e-4) trên dataset IJB-B và IJB-C với task verification**
 
 | Method                | IJB-B (%) | IJB-C (%) |
 | :-------------------- | :-------- | :-------- |
@@ -149,7 +148,7 @@ Cả hai mô hình r50_lite và r100_lite đều đạt **độ chính xác khá
 | MS1MV3, r100_lite, CDML(Ours)| **91.15** | **93.13** |
 | MS1MV3, r50_lite, CDML(Ours) | **90.83** | **93.15** |
 
-**Bảng 5.5: TPR ở nhiều mức FPRs trên tập IJB-B và IJB-C for r100_lite and r50_lite** [61]
+**Bảng 5.5: TPR ở nhiều mức FPRs trên tập IJB-B và IJB-C for r100_lite and r50_lite**
 
 | Model       | Dataset | 1e-6  | 1e-5  | 1e-4  | 0.001 | 0.01  | 0.1   |
 | :---------- | :------ | :---- | :---- | :---- | :---- | :---- | :---- |
@@ -158,13 +157,13 @@ Cả hai mô hình r50_lite và r100_lite đều đạt **độ chính xác khá
 | r50_lite    | IJB-B   | 36.11 | 83.61 | 90.83 | 94.35 | 96.81 | 98.49 |
 |             | IJB-C   | 83.78 | 89.42 | 93.15 | 95.64 | 97.65 | 98.88 |
 
-Các mô hình **r100_lite và r50_lite đạt hiệu suất tương đối tốt** trên IJB-B và IJB-C, với TPR@FPR=1e-4 lần lượt là 91.15% và 90.83% trên IJB-B, và 93.13% và 93.15% trên IJB-C [61]. Hiệu suất này thấp hơn so với các phương pháp tiên tiến nhất (như IBUG-500K, R100, ArcFace đạt 96.02% trên IJB-B và 97.27% trên IJB-C), nhưng vẫn chứng tỏ tính hiệu quả của các mô hình nhẹ trong bối cảnh tài nguyên hạn chế [61].
+Các mô hình **r100_lite và r50_lite đạt hiệu suất tương đối tốt** trên IJB-B và IJB-C, với TPR@FPR=1e-4 lần lượt là 91.15% và 90.83% trên IJB-B, và 93.13% và 93.15% trên IJB-C. Hiệu suất này thấp hơn so với các phương pháp tiên tiến nhất (như IBUG-500K, R100, ArcFace đạt 96.02% trên IJB-B và 97.27% trên IJB-C), nhưng vẫn chứng tỏ tính hiệu quả của các mô hình nhẹ trong bối cảnh tài nguyên hạn chế.
 
 ### Đánh giá tốc độ suy luận và bộ nhớ mô hình
 
-So sánh các thông số về số lượng tham số, kích thước mô hình, thời gian suy luận trên CPU và GFLOPs giữa các dòng Resnet và Resnet-lite [62].
+So sánh các thông số về số lượng tham số, kích thước mô hình, thời gian suy luận trên CPU và GFLOPs giữa các dòng Resnet và Resnet-lite.
 
-**Bảng 5.6: So sánh thông số mô hình dựa trên số lượng tham số, kích thước mô hình, thời gian suy luận (CPU), và GFLOPs đo trên thiết bị CPU (16G Ram)** [63]
+**Bảng 5.6: So sánh thông số mô hình dựa trên số lượng tham số, kích thước mô hình, thời gian suy luận (CPU), và GFLOPs đo trên thiết bị CPU (16G Ram)**
 
 | Mô hình     | Số tham số   | Kích thước (MB) | Thời gian suy luận (ms/image) | GFLOPs |
 | :---------- | :----------- | :-------------- | :---------------------------- | :----- |
@@ -177,42 +176,42 @@ So sánh các thông số về số lượng tham số, kích thước mô hình
 | R50_lite    | 14,120,800   | 53.87           | 39.39                         | 1.60   |
 | R100_lite   | 19,521,312   | 74.47           | 79.10                         | 3.05   |
 
-Các mô hình **Resnet-lite** có số lượng tham số và kích thước **nhỏ hơn đáng kể** (ví dụ: R100_lite giảm khoảng 70% kích thước so với R100) [62]. Tốc độ suy luận của Resnet-lite cũng **vượt trội hơn** (ví dụ: R18_lite nhanh hơn khoảng 2.76 lần so với R18) [64]. Yêu cầu tính toán (GFLOPs) cũng giảm đáng kể (ví dụ: R100_lite giảm khoảng 75% so với R100) [64]. Điều này cho thấy các mô hình Lite phù hợp cho triển khai trên thiết bị có tài nguyên hạn chế và yêu cầu thời gian thực [65].
+Các mô hình **Resnet-lite** có số lượng tham số và kích thước **nhỏ hơn đáng kể** (ví dụ: R100_lite giảm khoảng 70% kích thước so với R100). Tốc độ suy luận của Resnet-lite cũng **vượt trội hơn** (ví dụ: R18_lite nhanh hơn khoảng 2.76 lần so với R18). Yêu cầu tính toán (GFLOPs) cũng giảm đáng kể (ví dụ: R100_lite giảm khoảng 75% so với R100). Điều này cho thấy các mô hình Lite phù hợp cho triển khai trên thiết bị có tài nguyên hạn chế và yêu cầu thời gian thực.
 
 Thông số của mô hình MTCNN và FasNet trên thiết bị CPU (16G Ram):
 
-**Bảng 5.7: Các thông số của mô hình MTCNN và FasNet (Thiết bị cpu Ram 16G)** [66]
+**Bảng 5.7: Các thông số của mô hình MTCNN và FasNet (Thiết bị cpu Ram 16G)**
 
 | Mô hình | Số tham số | Thời gian suy luận (ms/image) | Kích thước (MB) |
 | :------ | :--------- | :---------------------------- | :-------------- |
 | MTCNN   | 495,850    | 289.60                        | 446.21          |
 | FasNet  | 868,146    | 35.93                         | 211.59          |
 
-Thời gian suy luận của MTCNN và FasNet cũng khá nhanh, giúp pipeline tổng thể không bị chậm đáng kể [67].
+Thời gian suy luận của MTCNN và FasNet cũng khá nhanh, giúp pipeline tổng thể không bị chậm đáng kể.
 
 ### Đánh giá tổng thể hệ thống nhận diện khuôn mặt
 
-Hệ thống được đánh giá trên bộ dữ liệu tự thu thập (1131 danh tính, >18000 ảnh người Việt) [67].
+Hệ thống được đánh giá trên bộ dữ liệu tự thu thập (1131 danh tính, >18000 ảnh người Việt).
 
-![Biểu đồ các chỉ số theo ngưỡng Cosine threshold](path/to/cosine_threshold_plot.png)
+![Biểu đồ các chỉ số theo ngưỡng Cosine threshold](image_resources/metrics_vs_threshold.png)
 
 *(Bạn sẽ thêm hình ảnh Hình 5.4 vào đây)*
 
-Hình 5.4 minh họa sự biến thiên của các chỉ số đánh giá (TAR, FAR, FRR, Accuracy, Precision, Recall, F1-score) theo ngưỡng Cosine threshold [66, 68].
+Hình trên minh họa sự biến thiên của các chỉ số đánh giá (TAR, FAR, FRR, Accuracy, Precision, Recall, F1-score) theo ngưỡng Cosine threshold.
 
-*   **TAR** (True Accept Rate) và **Accuracy** tăng nhanh và đạt ngưỡng cực đại (gần 0.98) ở ngưỡng khoảng 0.70 [68].
-*   **FAR** (False Accept Rate) tăng khi ngưỡng tăng, cho thấy rủi ro nhận nhầm tăng lên khi yêu cầu tương đồng cao hơn [68].
-*   **FRR** (False Reject Rate) giảm khi ngưỡng tăng, hệ thống ít từ chối sai các cá thể hợp lệ hơn [69].
-*   **Precision** và **Recall** có xu hướng giảm dần khi ngưỡng tăng. Precision duy trì cao (>0.984), trong khi Recall giảm phản ánh sự đánh đổi [70].
-*   **F1-score** giảm nhẹ nhưng vẫn ổn định trên 0.980 [70].
+*   **TAR** (True Accept Rate) và **Accuracy** tăng nhanh và đạt ngưỡng cực đại (gần 0.98) ở ngưỡng khoảng 0.70.
+*   **FAR** (False Accept Rate) tăng khi ngưỡng tăng, cho thấy rủi ro nhận nhầm tăng lên khi yêu cầu tương đồng cao hơn.
+*   **FRR** (False Reject Rate) giảm khi ngưỡng tăng, hệ thống ít từ chối sai các cá thể hợp lệ hơn.
+*   **Precision** và **Recall** có xu hướng giảm dần khi ngưỡng tăng. Precision duy trì cao (>0.984), trong khi Recall giảm phản ánh sự đánh đổi.
+*   **F1-score** giảm nhẹ nhưng vẫn ổn định trên 0.980.
 
-Hệ thống đạt hiệu suất tối ưu khi **cosine threshold nằm trong khoảng từ 0.70 đến 0.85**, cân bằng tốt giữa việc chấp nhận đúng, hạn chế từ chối sai và kiểm soát rủi ro nhận nhầm [71]. Phương pháp xác định ngưỡng tối ưu dựa trên khoảng cách trung bình giữa các cặp positive (cùng người) và negative (khác người) trên dữ liệu VN-Celeb cho kết quả ngưỡng Cosine là **0.705** (trung bình positive: 0.452, trung bình negative: 0.958) [72, 73].
+Hệ thống đạt hiệu suất tối ưu khi **cosine threshold nằm trong khoảng từ 0.70 đến 0.85**, cân bằng tốt giữa việc chấp nhận đúng, hạn chế từ chối sai và kiểm soát rủi ro nhận nhầm. Phương pháp xác định ngưỡng tối ưu dựa trên khoảng cách trung bình giữa các cặp positive (cùng người) và negative (khác người) trên dữ liệu VN-Celeb cho kết quả ngưỡng Cosine là **0.705** (trung bình positive: 0.452, trung bình negative: 0.958).
 
 ### Phân tích các mẫu dự đoán sai
 
-Hệ thống gặp phải hai loại lỗi phổ biến: từ chối nhầm (False Negative) và nhận nhầm người (False Positive) [74].
+Hệ thống gặp phải hai loại lỗi phổ biến: từ chối nhầm (False Negative) và nhận nhầm người (False Positive).
 
-**Bảng 5.8: Các trường hợp từ chối nhầm với ngưỡng cosine 0.7** [75]
+**Bảng 5.8: Các trường hợp từ chối nhầm với ngưỡng cosine 0.7**
 
 | Ảnh thử | Ảnh nhãn | Khoảng cách | Ghi chú                                      |
 | :------ | :------- | :---------- | :------------------------------------------- |
@@ -224,9 +223,9 @@ Hệ thống gặp phải hai loại lỗi phổ biến: từ chối nhầm (Fal
 
 *(Thêm ảnh minh họa cho Bảng 5.8)*
 
-Nguyên nhân từ chối nhầm chủ yếu do **thay đổi lớn về góc chụp, biểu cảm, chất lượng ảnh, hoặc sự chênh lệch độ tuổi** khiến khoảng cách đặc trưng vượt quá ngưỡng [74].
+Nguyên nhân từ chối nhầm chủ yếu do **thay đổi lớn về góc chụp, biểu cảm, chất lượng ảnh, hoặc sự chênh lệch độ tuổi** khiến khoảng cách đặc trưng vượt quá ngưỡng.
 
-**Bảng 5.9: Các trường hợp nhận nhầm người với ngưỡng cosine 0.7** [76]
+**Bảng 5.9: Các trường hợp nhận nhầm người với ngưỡng cosine 0.7**
 
 | Cặp ảnh | Khoảng cách | Ghi chú                                      |
 | :------ | :---------- | :------------------------------------------- |
@@ -241,11 +240,11 @@ Nguyên nhân từ chối nhầm chủ yếu do **thay đổi lớn về góc ch
 
 *(Thêm ảnh minh họa cho Bảng 5.9)*
 
-Nhận nhầm người xảy ra khi khoảng cách cosine giữa hai ảnh khác người nhỏ hơn ngưỡng [77]. Điều này thường do **đặc điểm khuôn mặt khá tương đồng** (kiểu tóc, biểu cảm, góc chụp) [77]. Một số trường hợp khoảng cách rất nhỏ (<0.5) nhưng vẫn là hai người khác nhau, cho thấy ngưỡng 0.7 có thể chưa đủ chặt trong một số trường hợp [77].
+Nhận nhầm người xảy ra khi khoảng cách cosine giữa hai ảnh khác người nhỏ hơn ngưỡng. Điều này thường do **đặc điểm khuôn mặt khá tương đồng** (kiểu tóc, biểu cảm, góc chụp). Một số trường hợp khoảng cách rất nhỏ (<0.5) nhưng vẫn là hai người khác nhau, cho thấy ngưỡng 0.7 có thể chưa đủ chặt trong một số trường hợp.
 
 ## Chức năng và giao diện
 
-Hệ thống có giao diện thân thiện [76] với các màn hình chính như:
+Hệ thống có giao diện thân thiện với các màn hình chính như:
 *   Màn hình chính chấm công.
 *   Màn hình camera khi chấm công (hiển thị box khuôn mặt và vùng center).
 *   Bảng điều khiển quản trị (chỉnh sửa cấu hình hệ thống).
@@ -253,46 +252,46 @@ Hệ thống có giao diện thân thiện [76] với các màn hình chính nh�
 *   Giao diện hiển thị thông tin chấm công chi tiết.
 *   Các chức năng xóa nhân viên, xóa bucket (công ty).
 
-![Màn hình chính chấm công](path/to/main_screen.png)
+![Màn hình chính chấm công](image_resources/open_cam_interface.png)
 *(Bạn sẽ thêm hình ảnh Hình 5.5a vào đây)*
 
-![Màn hình camera khi chấm công](path/to/camera_screen.png)
+![Màn hình camera khi chấm công](image_resources/Collect_image.png)
 *(Bạn sẽ thêm hình ảnh Hình 5.5b vào đây)*
 
-![Bảng điều khiển, chỉnh sửa cấu hình](path/to/admin_config.png)
+![Bảng điều khiển, chỉnh sửa cấu hình](image_resources/Dashboard.png)
 *(Bạn sẽ thêm hình ảnh Hình 5.5c vào đây)*
 
-![Giao diện thêm nhân viên mới](path/to/add_employee.png)
+![Giao diện thêm nhân viên mới](image_resources/add_employee.png)
 *(Bạn sẽ thêm hình ảnh Hình 5.5d vào đây)*
 
-![Xuất thông tin chấm công](path/to/timekeeping_export.png)
+![Xuất thông tin chấm công](image_resources/timekeeping.png)
 *(Bạn sẽ thêm hình ảnh Hình 5.6a vào đây)*
 
-![Hiển thị chi tiết thông tin chấm công](path/to/timekeeping_detail.png)
+![Hiển thị chi tiết thông tin chấm công](image_resources/Timekeeping2.png)
 *(Bạn sẽ thêm hình ảnh Hình 5.6b vào đây)*
 
-![Xóa nhân viên](path/to/delete_employee.png)
+![Xóa nhân viên](image_resources/delete_employee.png)
 *(Bạn sẽ thêm hình ảnh Hình 5.6c vào đây)*
 
-![Xóa bucket (Công ty)](path/to/delete_bucket.png)
+![Xóa bucket (Công ty)](image_resources/delete_bucket.png)
 *(Bạn sẽ thêm hình ảnh Hình 5.6d vào đây)*
 
-Hệ thống hoạt động ổn định, nhận diện chính xác và ghi lại thời gian ra vào tự động [78].
+Hệ thống hoạt động ổn định, nhận diện chính xác và ghi lại thời gian ra vào tự động.
 
 ## Kết luận
 
-Đồ án đã **xây dựng thành công hệ thống chấm công nhận diện khuôn mặt** với pipeline hoàn chỉnh và khả năng chống giả mạo cơ bản [79]. Đề xuất hàm mất mát **CDML** giúp cải thiện khả năng tổng quát hóa [79]. Các biến thể backbone **IResNet_Lite** cho phép đạt tốc độ suy luận nhanh, phù hợp thiết bị tài nguyên hạn chế [79]. Hệ thống tích hợp với Firebase và Cloudinary cho phép quản lý dữ liệu realtime [79].
+Đồ án đã **xây dựng thành công hệ thống chấm công nhận diện khuôn mặt** với pipeline hoàn chỉnh và khả năng chống giả mạo cơ bản. Đề xuất hàm mất mát **CDML** giúp cải thiện khả năng tổng quát hóa. Các biến thể backbone **IResNet_Lite** cho phép đạt tốc độ suy luận nhanh, phù hợp thiết bị tài nguyên hạn chế. Hệ thống tích hợp với Firebase và Cloudinary cho phép quản lý dữ liệu realtime.
 
-Tuy nhiên, hệ thống vẫn còn hạn chế trong việc xử lý các ảnh có biến đổi lớn, giao diện ở mức cơ bản, và việc huấn luyện trên dữ liệu lớn bị giới hạn tài nguyên [79].
+Tuy nhiên, hệ thống vẫn còn hạn chế trong việc xử lý các ảnh có biến đổi lớn, giao diện ở mức cơ bản, và việc huấn luyện trên dữ liệu lớn bị giới hạn tài nguyên.
 
 ## Hướng phát triển trong tương lai
 
-*   **Tối ưu hóa mô hình cho thiết bị nhúng:** Chuyển đổi mô hình sang ONNX, TensorRT hoặc định dạng phần cứng AI chuyên dụng [80].
-*   **Tăng cường chống giả mạo:** Tích hợp các kỹ thuật liveness detection tiên tiến (phân tích chuyển động mắt, phản xạ ánh sáng, cảm biến đa phổ) [81].
-*   **Huấn luyện trên bộ dữ liệu lớn và đa dạng hơn:** Sử dụng Glint360K hoặc IBUG-500K để cải thiện khả năng tổng quát hóa [81].
-*   **Đầu tư thêm tài nguyên tính toán:** Cho phép huấn luyện với batch size và số epoch lớn hơn để đạt độ chính xác cao hơn [82].
-*   **Phát triển giao diện người dùng:** Xây dựng giao diện đa nền tảng (web, desktop, mobile) với các tính năng quản lý nhân sự nâng cao [82].
-*   **Mở rộng ứng dụng:** Triển khai hệ thống trong kiểm soát an ninh, giám sát ra vào, giáo dục, y tế, hoặc trên nền tảng edge computing [83].
+*   **Tối ưu hóa mô hình cho thiết bị nhúng:** Chuyển đổi mô hình sang ONNX, TensorRT hoặc định dạng phần cứng AI chuyên dụng.
+*   **Tăng cường chống giả mạo:** Tích hợp các kỹ thuật liveness detection tiên tiến (phân tích chuyển động mắt, phản xạ ánh sáng, cảm biến đa phổ).
+*   **Huấn luyện trên bộ dữ liệu lớn và đa dạng hơn:** Sử dụng Glint360K hoặc IBUG-500K để cải thiện khả năng tổng quát hóa.
+*   **Đầu tư thêm tài nguyên tính toán:** Cho phép huấn luyện với batch size và số epoch lớn hơn để đạt độ chính xác cao hơn.
+*   **Phát triển giao diện người dùng:** Xây dựng giao diện đa nền tảng (web, desktop, mobile) với các tính năng quản lý nhân sự nâng cao.
+*   **Mở rộng ứng dụng:** Triển khai hệ thống trong kiểm soát an ninh, giám sát ra vào, giáo dục, y tế, hoặc trên nền tảng edge computing.
 
 ## Tài liệu tham khảo
 
