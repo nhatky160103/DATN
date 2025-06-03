@@ -213,11 +213,11 @@ Hệ thống gặp phải hai loại lỗi phổ biến: từ chối nhầm (Fal
 
 | Ảnh thử | Ảnh nhãn | Khoảng cách | Ghi chú                                      |
 | :------ | :------- | :---------- | :------------------------------------------- |
-|  ![pair1](image_resources/pair1_1.png)    |  ![pair1](image_resources/pair1_2.png)     | 0.74        | Cùng người – khác góc chụp, ảnh mờ           |
-|  ![pair1](image_resources/pair2_1.png)    |  ![pair1](image_resources/pair2_2.png)     | 0.71        | Cùng người – khác màu sắc, góc chụp, ảnh đen trắng |
-|  ![pair1](image_resources/pair3_1.png)    |  ![pair1](image_resources/pair3_2.png)     | 0.76        | Cùng người – khác nhau về độ tuổi, màu sắc    |
-|  ![pair1](image_resources/pair4_1.png)    |  ![pair1](image_resources/pair4_2.png)     | 0.79        | Cùng người – biểu cảm khác                  |
-|  ![pair1](image_resources/pair5_1.png)    |  ![pair1](image_resources/pair5_2.png)     | 0.73        | Cùng người – ảnh mờ, màu khác, đeo kính       |
+|  ![pair1](image_resources/pair1_1.png)    |  ![pair1_2](image_resources/pair1_2.png)     | 0.74        | Cùng người – khác góc chụp, ảnh mờ           |
+|  ![pair2](image_resources/pair2_1.png)    |  ![pair2_2](image_resources/pair2_2.png)     | 0.71        | Cùng người – khác màu sắc, góc chụp, ảnh đen trắng |
+|  ![pair3](image_resources/pair3_1.png)    |  ![pair3_2](image_resources/pair3_2.png)     | 0.76        | Cùng người – khác nhau về độ tuổi, màu sắc    |
+|  ![pair4](image_resources/pair4_1.png)    |  ![pair4_2](image_resources/pair4_2.png)     | 0.79        | Cùng người – biểu cảm khác                  |
+|  ![pair5](image_resources/pair5_1.png)    |  ![pair5_2](image_resources/pair5_2.png)     | 0.73        | Cùng người – ảnh mờ, màu khác, đeo kính       |
 
 Nguyên nhân từ chối nhầm chủ yếu do **thay đổi lớn về góc chụp, biểu cảm, chất lượng ảnh, hoặc sự chênh lệch độ tuổi** khiến khoảng cách đặc trưng vượt quá ngưỡng.
 
@@ -234,7 +234,7 @@ Nguyên nhân từ chối nhầm chủ yếu do **thay đổi lớn về góc ch
 |  ![pair1](image_resources/pair7.png)    | 0.5065      | Khác người - biểu cảm và nụ cười gần giống, cùng màu da |
 |  ![pair1](image_resources/pair8.png)    | 0.5237      | Khác người - trang điểm và kiểu tóc truyền thống tạo cảm giác nhận diện sai |
 
-Nhận nhầm người xảy ra khi khoảng cách cosine giữa hai ảnh khác người nhỏ hơn ngưỡng. Điều này thường do **đặc điểm khuôn mặt khá tương đồng** (kiểu tóc, biểu cảm, góc chụp). Một số trường hợp khoảng cách rất nhỏ (<0.5) nhưng vẫn là hai người khác nhau, cho thấy ngưỡng 0.7 có thể chưa đủ chặt trong một số trường hợp.
+Nhận nhầm người xảy ra khi khoảng cách cosine giữa hai ảnh khác người nhỏ hơn ngưỡng. Điều này thường do **đặc điểm khuôn mặt khá tương đồng** (kiểu tóc, biểu cảm, góc chụp). Một số trường hợp khoảng cách chỉ nhỏ hơn ngưỡng một khoảng rất nhỏ nhưng vẫn là hai người khác nhau, cho thấy ngưỡng 0.7 có thể chưa đủ chặt trong một số trường hợp.
 
 ## Chức năng và giao diện
 
@@ -291,7 +291,7 @@ Link dataset: [Dataset Link](https://husteduvn-my.sharepoint.com/:f:/g/personal/
 
 ### Model Weights
 Các model weights đã được huấn luyện có sẵn tại cùng link dataset, bao gồm:
-- Các model IResNet_Lite (r18_lite, r34_lite, r50_lite, r100_lite, r200_lite)
+- Các model được trình bày ở trên 
 - Model MTCNN cho face detection
 - Model FasNet cho anti-spoofing
 
