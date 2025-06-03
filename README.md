@@ -54,7 +54,7 @@ Phần này trình bày các kết quả đánh giá mô hình trích xuất đ�
 
 Đồ án so sánh hàm mất mát CDML với các hàm mất mát khác (ArcFace, CosFace, Softmax, v.v.) khi huấn luyện mô hình với mạng xương sống **ResNet50** trên tập dữ liệu **CASIA-WebFace**.
 
-**Bảng 5.1: Độ chính xác (%) trên các tập xác thực của các hàm mất mát khác nhau**
+**Bảng Độ chính xác (%) trên các tập xác thực của các hàm mất mát khác nhau**
 
 | Loss Functions              | LFW   | CFP-FP | AgeDB |
 | :-------------------------- | :---- | :----- | :---- |
@@ -87,7 +87,7 @@ Kết quả cho thấy **CDML đạt độ chính xác khá cao** trên LFW (99.
 
 Đánh giá so sánh hàm mất mát CDML và ArcFace trên các backbone nhẹ hơn là **r18_lite** và **r50_lite**, huấn luyện trên **CASIA-WebFace**.
 
-**Bảng 5.2: So sánh độ chính xác (%) của các mô hình trên các tập kiểm thử, với bộ dữ liệu huấn luyện là CASIA-WEBFACE**
+**Bảng So sánh độ chính xác (%) của các mô hình trên các tập kiểm thử, với bộ dữ liệu huấn luyện là CASIA-WEBFACE**
 
 | Dataset | r18_lite        |           | r50_lite        |           |
 | :------ | :-------------- | :-------- | :-------------- | :-------- |
@@ -105,7 +105,7 @@ Khi sử dụng backbone **r50_lite**, CDML cho hiệu quả nổi bật hơn Ar
 
 Đồ án huấn luyện các mô hình r50_lite và r100_lite trên tập dữ liệu lớn hơn là **MS1MV3** để tăng độ chính xác.
 
-**Bảng 5.3: So sánh độ chính xác (%) của các mô hình r50_lite và r100_lite trên các tập kiểm thử, với bộ dữ liệu huấn luyện là MS1MV3**
+**Bảng So sánh độ chính xác (%) của các mô hình r50_lite và r100_lite trên các tập kiểm thử, với bộ dữ liệu huấn luyện là MS1MV3**
 
 | Dataset   | r50_lite     | r100_lite    |
 | :-------- | :----------- | :----------- |
@@ -120,7 +120,7 @@ Cả hai mô hình r50_lite và r100_lite đều đạt **độ chính xác khá
 
 Đánh giá trên các tập chuẩn **IJB-B** và **IJB-C** cho tác vụ verification (độ chính xác 1:1).
 
-**Bảng 5.4: 1:1 Độ chính xác (TPR@FPR=1e-4) trên dataset IJB-B và IJB-C với task verification**
+**Bảng 1:1 Độ chính xác (TPR@FPR=1e-4) trên dataset IJB-B và IJB-C với task verification**
 
 | Method                | IJB-B (%) | IJB-C (%) |
 | :-------------------- | :-------- | :-------- |
@@ -148,7 +148,7 @@ Cả hai mô hình r50_lite và r100_lite đều đạt **độ chính xác khá
 | MS1MV3, r100_lite, CDML(Ours)| **91.15** | **93.13** |
 | MS1MV3, r50_lite, CDML(Ours) | **90.83** | **93.15** |
 
-**Bảng 5.5: TPR ở nhiều mức FPRs trên tập IJB-B và IJB-C for r100_lite and r50_lite**
+**Bảng TPR ở nhiều mức FPRs trên tập IJB-B và IJB-C for r100_lite and r50_lite**
 
 | Model       | Dataset | 1e-6  | 1e-5  | 1e-4  | 0.001 | 0.01  | 0.1   |
 | :---------- | :------ | :---- | :---- | :---- | :---- | :---- | :---- |
@@ -163,7 +163,7 @@ Các mô hình **r100_lite và r50_lite đạt hiệu suất tương đối tố
 
 So sánh các thông số về số lượng tham số, kích thước mô hình, thời gian suy luận trên CPU và GFLOPs giữa các dòng Resnet và Resnet-lite.
 
-**Bảng 5.6: So sánh thông số mô hình dựa trên số lượng tham số, kích thước mô hình, thời gian suy luận (CPU), và GFLOPs đo trên thiết bị CPU (16G Ram)**
+**Bảng So sánh thông số mô hình dựa trên số lượng tham số, kích thước mô hình, thời gian suy luận (CPU), và GFLOPs đo trên thiết bị CPU (16G Ram)**
 
 | Mô hình     | Số tham số   | Kích thước (MB) | Thời gian suy luận (ms/image) | GFLOPs |
 | :---------- | :----------- | :-------------- | :---------------------------- | :----- |
@@ -178,9 +178,9 @@ So sánh các thông số về số lượng tham số, kích thước mô hình
 
 Các mô hình **Resnet-lite** có số lượng tham số và kích thước **nhỏ hơn đáng kể** (ví dụ: R100_lite giảm khoảng 70% kích thước so với R100). Tốc độ suy luận của Resnet-lite cũng **vượt trội hơn** (ví dụ: R18_lite nhanh hơn khoảng 2.76 lần so với R18). Yêu cầu tính toán (GFLOPs) cũng giảm đáng kể (ví dụ: R100_lite giảm khoảng 75% so với R100). Điều này cho thấy các mô hình Lite phù hợp cho triển khai trên thiết bị có tài nguyên hạn chế và yêu cầu thời gian thực.
 
-Thông số của mô hình MTCNN và FasNet trên thiết bị CPU (16G Ram):
+Thời gian suy luận của MTCNN và FasNet trên thiết bị CPU (16G Ram):
 
-**Bảng 5.7: Các thông số của mô hình MTCNN và FasNet (Thiết bị cpu Ram 16G)**
+**Bảng Các thông số của mô hình MTCNN và FasNet (Thiết bị cpu Ram 16G)**
 
 | Mô hình | Số tham số | Thời gian suy luận (ms/image) | Kích thước (MB) |
 | :------ | :--------- | :---------------------------- | :-------------- |
@@ -194,8 +194,6 @@ Thời gian suy luận của MTCNN và FasNet cũng khá nhanh, giúp pipeline t
 Hệ thống được đánh giá trên bộ dữ liệu tự thu thập (1131 danh tính, >18000 ảnh người Việt).
 
 ![Biểu đồ các chỉ số theo ngưỡng Cosine threshold](image_resources/metrics_vs_threshold.png)
-
-*(Bạn sẽ thêm hình ảnh Hình 5.4 vào đây)*
 
 Hình trên minh họa sự biến thiên của các chỉ số đánh giá (TAR, FAR, FRR, Accuracy, Precision, Recall, F1-score) theo ngưỡng Cosine threshold.
 
@@ -211,70 +209,58 @@ Hệ thống đạt hiệu suất tối ưu khi **cosine threshold nằm trong k
 
 Hệ thống gặp phải hai loại lỗi phổ biến: từ chối nhầm (False Negative) và nhận nhầm người (False Positive).
 
-**Bảng 5.8: Các trường hợp từ chối nhầm với ngưỡng cosine 0.7**
+**Bảng Các trường hợp từ chối nhầm với ngưỡng cosine 0.7**
 
 | Ảnh thử | Ảnh nhãn | Khoảng cách | Ghi chú                                      |
 | :------ | :------- | :---------- | :------------------------------------------- |
-| `img`   | `img`    | 0.74        | Cùng người – khác góc chụp, ảnh mờ           |
-| `img`   | `img`    | 0.71        | Cùng người – khác màu sắc, góc chụp, ảnh đen trắng |
-| `img`   | `img`    | 0.76        | Cùng người – khác nhau về độ tuổi, màu sắc    |
-| `img`   | `img`    | 0.79        | Cùng người – biểu cảm khác                  |
-| `img`   | `img`    | 0.73        | Cùng người – ảnh mờ, màu khác, đeo kính       |
-
-*(Thêm ảnh minh họa cho Bảng 5.8)*
+|  ![pair1](image_resources/pair1_1.png)    |  ![pair1](image_resources/pair1_2.png)     | 0.74        | Cùng người – khác góc chụp, ảnh mờ           |
+|  ![pair1](image_resources/pair2_1.png)    |  ![pair1](image_resources/pair2_2.png)     | 0.71        | Cùng người – khác màu sắc, góc chụp, ảnh đen trắng |
+|  ![pair1](image_resources/pair3_1.png)    |  ![pair1](image_resources/pair3_2.png)     | 0.76        | Cùng người – khác nhau về độ tuổi, màu sắc    |
+|  ![pair1](image_resources/pair4_1.png)    |  ![pair1](image_resources/pair4_2.png)     | 0.79        | Cùng người – biểu cảm khác                  |
+|  ![pair1](image_resources/pair5_1.png)    |  ![pair1](image_resources/pair5_2.png)     | 0.73        | Cùng người – ảnh mờ, màu khác, đeo kính       |
 
 Nguyên nhân từ chối nhầm chủ yếu do **thay đổi lớn về góc chụp, biểu cảm, chất lượng ảnh, hoặc sự chênh lệch độ tuổi** khiến khoảng cách đặc trưng vượt quá ngưỡng.
 
-**Bảng 5.9: Các trường hợp nhận nhầm người với ngưỡng cosine 0.7**
+**Bảng Các trường hợp nhận nhầm người với ngưỡng cosine 0.7**
 
 | Cặp ảnh | Khoảng cách | Ghi chú                                      |
 | :------ | :---------- | :------------------------------------------- |
-| `img`   | 0.6242      | Khác người - góc nghiêng, đeo kính, biểu cảm tương tự |
-| `img`   | 0.6207      | Khác người - khuôn mặt đối xứng, kiểu tóc và trang điểm tương đồng |
-| `img`   | 0.5609      | Khác người - khuôn mặt tròn, nụ cười và kiểu tóc tương tự |
-| `img`   | 0.4995      | Khác người - ánh sáng và góc chụp tương đồng, biểu cảm gần giống |
-| `img`   | 0.6630      | Khác người - kiểu tóc giống nhau, góc chụp thẳng, làn da sáng |
-| `img`   | 0.4925      | Khác người - mắt, môi và cấu trúc mặt tương đồng, nền ảnh tương phản thấp |
-| `img`   | 0.5065      | Khác người - biểu cảm và nụ cười gần giống, cùng màu da |
-| `img`   | 0.5237      | Khác người - trang điểm và kiểu tóc truyền thống tạo cảm giác nhận diện sai |
-
-*(Thêm ảnh minh họa cho Bảng 5.9)*
+| ![pair1](image_resources/pair1.png)   | 0.6242      | Khác người - góc nghiêng, đeo kính, biểu cảm tương tự |
+|  ![pair1](image_resources/pair2.png)   | 0.6207      | Khác người - khuôn mặt đối xứng, kiểu tóc và trang điểm tương đồng |
+|  ![pair1](image_resources/pair3.png)    | 0.5609      | Khác người - khuôn mặt tròn, nụ cười và kiểu tóc tương tự |
+|  ![pair1](image_resources/pair4.png)    | 0.4995      | Khác người - ánh sáng và góc chụp tương đồng, biểu cảm gần giống |
+|  ![pair1](image_resources/pair5.png)    | 0.6630      | Khác người - kiểu tóc giống nhau, góc chụp thẳng, làn da sáng |
+|  ![pair1](image_resources/pair6.png)    | 0.4925      | Khác người - mắt, môi và cấu trúc mặt tương đồng, nền ảnh tương phản thấp |
+|  ![pair1](image_resources/pair7.png)    | 0.5065      | Khác người - biểu cảm và nụ cười gần giống, cùng màu da |
+|  ![pair1](image_resources/pair8.png)    | 0.5237      | Khác người - trang điểm và kiểu tóc truyền thống tạo cảm giác nhận diện sai |
 
 Nhận nhầm người xảy ra khi khoảng cách cosine giữa hai ảnh khác người nhỏ hơn ngưỡng. Điều này thường do **đặc điểm khuôn mặt khá tương đồng** (kiểu tóc, biểu cảm, góc chụp). Một số trường hợp khoảng cách rất nhỏ (<0.5) nhưng vẫn là hai người khác nhau, cho thấy ngưỡng 0.7 có thể chưa đủ chặt trong một số trường hợp.
 
 ## Chức năng và giao diện
 
 Hệ thống có giao diện thân thiện với các màn hình chính như:
-*   Màn hình chính chấm công.
-*   Màn hình camera khi chấm công (hiển thị box khuôn mặt và vùng center).
-*   Bảng điều khiển quản trị (chỉnh sửa cấu hình hệ thống).
-*   Giao diện thêm nhân viên mới (nhập thông tin, thu thập ảnh).
-*   Giao diện hiển thị thông tin chấm công chi tiết.
-*   Các chức năng xóa nhân viên, xóa bucket (công ty).
+*   Màn hình chính chấm công
+*   Màn hình camera khi chấm công (hiển thị box khuôn mặt và vùng center)
+*   Bảng điều khiển quản trị (chỉnh sửa cấu hình hệ thống)
+*   Giao diện thêm nhân viên mới (nhập thông tin, thu thập ảnh)
+*   Giao diện hiển thị thông tin chấm công chi tiết
+*   Các chức năng xóa nhân viên, xóa bucket (công ty)
 
 ![Màn hình chính chấm công](image_resources/open_cam_interface.png)
-*(Bạn sẽ thêm hình ảnh Hình 5.5a vào đây)*
 
 ![Màn hình camera khi chấm công](image_resources/Collect_image.png)
-*(Bạn sẽ thêm hình ảnh Hình 5.5b vào đây)*
 
 ![Bảng điều khiển, chỉnh sửa cấu hình](image_resources/Dashboard.png)
-*(Bạn sẽ thêm hình ảnh Hình 5.5c vào đây)*
 
 ![Giao diện thêm nhân viên mới](image_resources/add_employee.png)
-*(Bạn sẽ thêm hình ảnh Hình 5.5d vào đây)*
 
 ![Xuất thông tin chấm công](image_resources/timekeeping.png)
-*(Bạn sẽ thêm hình ảnh Hình 5.6a vào đây)*
 
 ![Hiển thị chi tiết thông tin chấm công](image_resources/Timekeeping2.png)
-*(Bạn sẽ thêm hình ảnh Hình 5.6b vào đây)*
 
 ![Xóa nhân viên](image_resources/delete_employee.png)
-*(Bạn sẽ thêm hình ảnh Hình 5.6c vào đây)*
 
 ![Xóa bucket (Công ty)](image_resources/delete_bucket.png)
-*(Bạn sẽ thêm hình ảnh Hình 5.6d vào đây)*
 
 Hệ thống hoạt động ổn định, nhận diện chính xác và ghi lại thời gian ra vào tự động.
 
@@ -293,6 +279,46 @@ Tuy nhiên, hệ thống vẫn còn hạn chế trong việc xử lý các ảnh
 *   **Phát triển giao diện người dùng:** Xây dựng giao diện đa nền tảng (web, desktop, mobile) với các tính năng quản lý nhân sự nâng cao.
 *   **Mở rộng ứng dụng:** Triển khai hệ thống trong kiểm soát an ninh, giám sát ra vào, giáo dục, y tế, hoặc trên nền tảng edge computing.
 
+## Dataset và Model Weights
+
+### Dataset
+Dataset được sử dụng trong đồ án bao gồm:
+- **CASIA-WebFace**: Dataset chính cho việc huấn luyện mô hình
+- **MS1MV3**: Dataset lớn hơn để tăng độ chính xác
+- **VN-Celeb**: Dataset tự thu thập với 1131 danh tính và hơn 18000 ảnh người Việt
+
+Link dataset: [Dataset Link](https://husteduvn-my.sharepoint.com/:f:/g/personal/ky_dn215410_sis_hust_edu_vn/Etlu7CZEWr5Ao1owHA9pOk0B-wwess_BZfVLEbZTcaWSvw?e=gVMQTf)
+
+### Model Weights
+Các model weights đã được huấn luyện có sẵn tại cùng link dataset, bao gồm:
+- Các model IResNet_Lite (r18_lite, r34_lite, r50_lite, r100_lite, r200_lite)
+- Model MTCNN cho face detection
+- Model FasNet cho anti-spoofing
+
+## Cấu trúc thư mục dự án
+
+```
+Facerecogtion/
+├── models/
+│   ├── Recognition/               # Chứa các model nhận diện khuôn mặt
+│   │   └── Arcface_torch/        # Model ArcFace và các biến thể
+│   ├── Detection/                # Model phát hiện khuôn mặt
+│   └── Anti_spoof/               # Model chống giả mạo
+├── data/                         # Dữ liệu huấn luyện và kiểm thử
+├── database/                     # Xử lý và lưu trữ dữ liệu
+├── interface/                    # Giao diện người dùng
+├── infer/                        # Mã nguồn suy luận
+├── eval_system/                  # Hệ thống đánh giá
+├── notebooks/                    # Jupyter notebooks cho thử nghiệm
+├── static/                       # Tài nguyên tĩnh
+├── local_embeddings/             # Lưu trữ vector đặc trưng cục bộ
+├── exports/                      # Xuất model và kết quả
+├── audio/                        # Tài nguyên âm thanh
+├── image_resources/              # Hình ảnh cho tài liệu
+├── config.yaml                   # Cấu hình hệ thống
+└── README.md                     # Tài liệu hướng dẫn
+```
+
 ## Tài liệu tham khảo
 
 [1] F. Schroff, D. Kalenichenko, and J. Philbin, "FaceNet: A unified embedding for face recognition and clustering," arXiv preprint arXiv:1503.03832, 2015.
@@ -308,3 +334,7 @@ Tuy nhiên, hệ thống vẫn còn hạn chế trong việc xử lý các ảnh
 [6] V. Bazarevsky et al., "BlazeFace: Sub-millisecond Neural Face Detection on Mobile GPUs," arXiv preprint arXiv:1907.05047, 2019.
 
 [7] W. Liu et al., "SphereFace: Deep Hypersphere Embedding for Face Recognition," in Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2017, pp. 212–220.
+
+[8] X. An et al., "Killing Two Birds With One Stone: Efficient and Robust Training of Face Recognition CNNs by Partial FC," in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2022.
+
+[9] Z. Zhu et al., "Webface260m: A benchmark unveiling the power of million-scale deep face recognition," in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2021.
