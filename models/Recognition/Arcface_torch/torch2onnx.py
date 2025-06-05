@@ -11,7 +11,7 @@ def convert_onnx(net, path_module, output, opset=11, simplify=False):
     img = img.transpose((2, 0, 1))
     img = torch.from_numpy(img).unsqueeze(0).float()
 
-    weight = torch.load(path_module)
+    weight = torch.load(path_module, map_location=torch.device('cpu'))
     net.load_state_dict(weight, strict=True)
     net.eval()
     torch.onnx.export(net, img, output, input_names=["data"], keep_initializers_as_inputs=False, verbose=False, opset_version=opset)
@@ -28,7 +28,7 @@ def convert_onnx(net, path_module, output, opset=11, simplify=False):
 if __name__ == '__main__':
     import os
     import argparse
-    from backbones import get_model
+    from .backbones import get_model
 
     parser = argparse.ArgumentParser(description='ArcFace PyTorch to onnx')
     parser.add_argument('input', type=str, help='input backbone.pth file or path')
