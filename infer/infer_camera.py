@@ -11,7 +11,7 @@ from .utils import get_recogn_model, mtcnn
 import time
 from .blazeFace import detect_face_and_nose
 from PIL import Image, ImageSequence
-
+from models.diffiqa_r.inference2 import evaluate_image_quality
 # get recogn model
 arcface_model = get_recogn_model()
 antispoof_model = Fasnet()
@@ -89,6 +89,9 @@ def infer_camera(config = None,
             break
         
         face , center_point, prob = detect_face_and_nose(frame)
+
+        
+        
         if face is None or prob is None or center_point is None:
             _, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
@@ -140,6 +143,7 @@ def infer_camera(config = None,
                         previous_message = 1
 
                     is_real, score = antispoof_model.analyze(origin_frame, map(int, face)) 
+       
                     print(is_real, score)
                     is_reals.append((is_real, score))
                     valid_images.append(origin_frame)
@@ -196,15 +200,14 @@ def check_validation(
         config = None,
         ):
 
-    is_anti_spoof=config['infer_video']['is_anti_spoof']
-    validation_threshold=config['infer_video']['validation_threshold']
-    anti_spoof_threshold=config['infer_video']['anti_spoof_threshold'] 
-    distance_mode=config['identity_person']['distance_mode']
-    l2_threshold=config['identity_person']['l2_threshold']
-    cosine_threshold=config['identity_person']['cosine_threshold']
+    is_anti_spoof = config['infer_video']['is_anti_spoof']
+    validation_threshold = config['infer_video']['validation_threshold']
+    anti_spoof_threshold = config['infer_video']['anti_spoof_threshold'] 
+    distance_mode = config['identity_person']['distance_mode']
+    l2_threshold = config['identity_person']['l2_threshold']
+    cosine_threshold = config['identity_person']['cosine_threshold']
 
     valid_images = input['valid_images']
-
 
     if valid_images is None or len(valid_images) == 0:
         print("Không có ảnh để xử lý.")
@@ -224,49 +227,63 @@ def check_validation(
     
     predict_class = []
 
-    for i, raw_image in enumerate(valid_images):
-        image = mtcnn(raw_image)
-        if image is None:
+    # Process all images in batch with MTCNN
+    batch_faces = mtcnn(valid_images)
+    print("Finish MTCNN")
+    
+    # Process faces and get embeddings
+    processed_faces = []
+    valid_indices = []  # Keep track of valid indices for anti-spoof
+    
+    for i, (raw_image, face) in enumerate(zip(valid_images, batch_faces)):
+        if face is None:
+            # If MTCNN fails, try detect_face_and_nose
             face, _, prob = detect_face_and_nose(raw_image)
             if face is not None:
                 x1, y1, x2, y2 = map(int, face)
                 image = raw_image[y1:y2, x1:x2]
-
-            else: 
+            else:
                 image = raw_image
+        else:
+            image = face
+            
+        # Check anti-spoof if enabled
         if is_anti_spoof:
             if not input['is_reals'][i][0] and input['is_reals'][i][1] > anti_spoof_threshold:
                 continue
-
-        pred_embed = getEmbedding(arcface_model, image)
-
-        result = find_closest_person(pred_embed, 
-                                    embeddings, 
-                                    image2class, 
-                                    distance_mode=distance_mode, 
-                                    l2_threshold = l2_threshold, 
-                                    cosine_threshold = cosine_threshold)
-
-        print(result)
-        if result != -1:
-            predict_class.append(result)
-
-    class_count = Counter(predict_class)
+                
+        processed_faces.append(image)
+        valid_indices.append(i)
     
-    majority_threshold = len(valid_images) * validation_threshold
+    # Get embeddings for all processed faces in batch
+    if processed_faces:
+        pred_embeds = getEmbedding(arcface_model, processed_faces)
+        
+        # Find closest person for each embedding
+        for pred_embed in pred_embeds:
+            result = find_closest_person(
+                pred_embed, 
+                embeddings, 
+                image2class, 
+                distance_mode=distance_mode, 
+                l2_threshold=l2_threshold, 
+                cosine_threshold=cosine_threshold
+            )
+            if result != -1:
+                predict_class.append(result)
 
+    # Count predictions and check against validation threshold
+    class_count = Counter(predict_class)
+    majority_threshold = len(valid_images) * validation_threshold
 
     for cls, count in class_count.items():
         if count >= majority_threshold:
             person_id = index2class.get(cls, 'UNKNOWN')
-        
             print(f"Người được nhận diện là: {person_id}")
-
             try:
                 playsound('audio/greeting.mp3')
             except Exception as e:
                 print(f"Lỗi khi phát âm thanh: {e}")
-
             return person_id
 
     print("Unknown person")
@@ -275,7 +292,6 @@ def check_validation(
         return 'UNKNOWN'
     except Exception as e:
         print(f"Lỗi khi phát âm thanh: {e}")
-       
 
 
 

@@ -1,6 +1,7 @@
 # Xây dựng mô hình Deep Learning tối ưu cho nhận diện khuôn mặt trong hệ thống chấm công trong công ty
 
-**Tác giả:** Đinh Nhật Ký Ky.dn215410@sis.hust.edu.vn\
+**Tác giả:** Đinh Nhật Ký\
+**Email**: Ky.dn215410@sis.hust.edu.vn\
 **Giảng viên hướng dẫn:** ThS. Lê Đức Trung\
 **Ngành:** Khoa học máy tính \
 **Khoa:** Khoa học máy tính \
@@ -17,15 +18,15 @@ Giải pháp được đề xuất bao gồm một **pipeline xử lý hoàn ch�
 
 ## Bài toán
 
-Bài toán chấm công thủ công truyền thống gặp nhiều hạn chế như tốn thời gian, dễ gian lận, và khó kiểm soát số liệu. Các hệ thống chấm công tự động bằng nhận diện khuôn mặt hiện có vẫn còn tiềm ẩn nguy cơ gian lận khi đối tượng có thể giả mạo khuôn mặt bằng ảnh hoặc video. Bên cạnh đó, các hệ thống này còn đối mặt với thách thức về độ chính xác trong điều kiện thực tế (ánh sáng yếu, thay đổi ngoại hình, góc độ), tốc độ xử lý và yêu cầu một pipeline tích hợp đầy đủ các bước.
+Bài toán chấm công thủ công truyền thống gặp nhiều hạn chế như tốn thời gian, dễ gian lận, và khó kiểm soát số liệu, giới hạn về số lượng nhân viên, không điều chỉnh được các cấu hình hệ hống, chưa tích hợp realtime. Các hệ thống chấm công tự động bằng nhận diện khuôn mặt hiện có vẫn còn tiềm ẩn nguy cơ gian lận khi đối tượng có thể giả mạo khuôn mặt bằng ảnh hoặc video. Bên cạnh đó, các hệ thống này còn đối mặt với thách thức về độ chính xác trong điều kiện thực tế (ánh sáng yếu, thay đổi ngoại hình, góc độ), tốc độ xử lý và yêu cầu một pipeline tích hợp đầy đủ các bước.
 
 ## Giải pháp đề xuất
 
 Đồ án đề xuất xây dựng hệ thống chấm công bằng nhận diện khuôn mặt ứng dụng Deep Learning với các đặc điểm chính:
 *   Sử dụng phương pháp **học không gian nhúng (Embedding Learning)** để trích xuất đặc trưng khuôn mặt.
-*   Dựa trên mô hình **ArcFace** - một phương pháp state-of-the-art, đồng thời **điều chỉnh backbone và hàm loss** để tối ưu hóa độ chính xác và tốc độ.
+*   Dựa trên mô hình **ArcFace** - một phương pháp state-of-the-art trên nhiều tập dữ liệu, đồng thời **điều chỉnh backbone và hàm loss** để tối ưu hóa độ chính xác và tốc độ.
 *   Đề xuất hàm mất mát **Combined Dynamic Margin Loss (CDML)**, mở rộng từ ArcFace bằng cách áp dụng margin động dựa trên độ khó của từng mẫu, giúp tăng khả năng phân biệt giữa các lớp.
-*   Sử dụng kiến trúc mạng xương sống **IResNet** và các biến thể **IResNet_Lite** (r18_lite, r34_lite, r50_lite, r100_lite, r200_lite) với số lượng tham số nhỏ, phù hợp cho triển khai trên thiết bị tài nguyên hạn chế.
+*   Sử dụng kiến trúc mạng xương sống **IResNet** và các biến thể **IResNet_Lite** (r18_lite, r50_lite, r100_lite) với số lượng tham số nhỏ, phù hợp cho triển khai trên thiết bị tài nguyên hạn chế.
 *   Xây dựng **pipeline xử lý hoàn chỉnh** bao gồm thu nhận ảnh, phát hiện và căn chỉnh khuôn mặt (sử dụng MTCNN/BlazeFace), kiểm tra chống giả mạo (sử dụng FASNet/MiniFASNet), trích xuất đặc trưng và so khớp vector nhúng.
 *   Tích hợp với cơ sở dữ liệu **Firebase Realtime Database** để quản lý thông tin nhân sự, lịch sử chấm công và cấu hình hệ thống.
 *   Lưu trữ ảnh và vector đặc trưng trên **Cloudinary**.
@@ -39,7 +40,7 @@ Hệ thống được thiết kế theo mô hình pipeline xử lý các khung h
 
 Các thành phần chính bao gồm:
 1.  **Thu nhận ảnh đầu vào (Collect frame):** Lấy mẫu khung hình từ webcam, kiểm tra chất lượng (diện tích khuôn mặt, căn giữa). Sử dụng BlazeFace để phát hiện và căn chỉnh khuôn mặt nhanh trong giai đoạn này.
-2.  **Kiểm tra chống giả mạo (Anti-spoofing):** Sử dụng mô hình FASNet/MiniFASNet để phát hiện khuôn mặt giả mạo (ảnh in, video, mặt nạ).
+2.  **Kiểm tra chống giả mạo (Anti-spoofing):** Sử dụng mô hình FASNet/MiniFASNet để phát hiện khuôn mặt giả mạo (ảnh in, ảnh chụp, video, mặt nạ...).
 3.  **Phát hiện và chuẩn hóa khuôn mặt:** Sử dụng MTCNN để phát hiện chính xác vùng khuôn mặt và các điểm đặc trưng (landmarks), sau đó chuẩn hóa kích thước ảnh về (112, 112).
 4.  **Trích xuất đặc trưng (Embedding):** Đưa ảnh khuôn mặt đã chuẩn hóa qua mô hình được huấn luyện (IResNet_Lite + CDML) để thu được vector đặc trưng 512 chiều.
 5.  **Đối sánh và xác định danh tính (Identification):** So sánh vector đặc trưng truy vấn với cơ sở dữ liệu vector đã lưu trữ bằng độ đo Cosine similarity hoặc Euclidean distance. Xác định danh tính dựa trên khoảng cách trung bình nhỏ nhất tới các vector trong từng lớp.
@@ -163,7 +164,7 @@ Các mô hình **r100_lite và r50_lite đạt hiệu suất tương đối tố
 
 So sánh các thông số về số lượng tham số, kích thước mô hình, thời gian suy luận trên CPU và GFLOPs giữa các dòng Resnet và Resnet-lite.
 
-**Bảng So sánh thông số mô hình dựa trên số lượng tham số, kích thước mô hình, thời gian suy luận (CPU), và GFLOPs đo trên thiết bị CPU (16G Ram)**
+**Bảng So sánh thông số mô hình dựa trên số lượng tham số, kích thước mô hình, thời gian suy luận (CPU), và GFLOPs đo trên thiết bị CPU (16G Ram)** với input_size (112,112)
 
 | Mô hình     | Số tham số   | Kích thước (MB) | Thời gian suy luận (ms/image) | GFLOPs |
 | :---------- | :----------- | :-------------- | :---------------------------- | :----- |
@@ -191,14 +192,14 @@ Thời gian suy luận của MTCNN và FasNet cũng khá nhanh, giúp pipeline t
 
 ### Đánh giá tổng thể hệ thống nhận diện khuôn mặt
 
-Hệ thống được đánh giá trên bộ dữ liệu tự thu thập (1131 danh tính, >18000 ảnh người Việt).
+Hệ thống được đánh giá trên bộ dữ liệu tự thu thập (1131 danh tính, >18000 ảnh người nổi tiếng tại Việt Nam).
 
 ![Biểu đồ các chỉ số theo ngưỡng Cosine threshold](image_resources/metrics_vs_threshold.png)
 
 Hình trên minh họa sự biến thiên của các chỉ số đánh giá (TAR, FAR, FRR, Accuracy, Precision, Recall, F1-score) theo ngưỡng Cosine threshold.
 
 *   **TAR** (True Accept Rate) và **Accuracy** tăng nhanh và đạt ngưỡng cực đại (gần 0.98) ở ngưỡng khoảng 0.70.
-*   **FAR** (False Accept Rate) tăng khi ngưỡng tăng, cho thấy rủi ro nhận nhầm tăng lên khi yêu cầu tương đồng cao hơn.
+*   **FAR** (False Accept Rate) tăng khi ngưỡng tăng, cho thấy rủi ro nhận nhầm tăng lên vì khi đó hệ thống trở nên 'dễ dãi ' hơn trong việc chấp nhận các cặp vector có khoảng cách lớn.
 *   **FRR** (False Reject Rate) giảm khi ngưỡng tăng, hệ thống ít từ chối sai các cá thể hợp lệ hơn.
 *   **Precision** và **Recall** có xu hướng giảm dần khi ngưỡng tăng. Precision duy trì cao (>0.984), trong khi Recall giảm phản ánh sự đánh đổi.
 *   **F1-score** giảm nhẹ nhưng vẫn ổn định trên 0.980.
@@ -268,11 +269,11 @@ Hệ thống hoạt động ổn định, nhận diện chính xác và ghi lạ
 
 Đồ án đã **xây dựng thành công hệ thống chấm công nhận diện khuôn mặt** với pipeline hoàn chỉnh và khả năng chống giả mạo cơ bản. Đề xuất hàm mất mát **CDML** giúp cải thiện khả năng tổng quát hóa. Các biến thể backbone **IResNet_Lite** cho phép đạt tốc độ suy luận nhanh, phù hợp thiết bị tài nguyên hạn chế. Hệ thống tích hợp với Firebase và Cloudinary cho phép quản lý dữ liệu realtime.
 
-Tuy nhiên, hệ thống vẫn còn hạn chế trong việc xử lý các ảnh có biến đổi lớn, giao diện ở mức cơ bản, và việc huấn luyện trên dữ liệu lớn bị giới hạn tài nguyên.
+Tuy nhiên, hệ thống vẫn còn hạn chế trong việc xử lý các ảnh có biến đổi lớn, giao diện ở mức cơ bản  phục vụ cho demo, và việc huấn luyện trên dữ liệu lớn bị giới hạn tài nguyên. Cần thực hiện thêm nhiều thử nghiệm với các tập dataset lớn hơn, nghiên cứu chuyển model sang các dạng tối ưu cho các thiết bị nhúng, hoàn thiện và phát triển giao diện quản trị hệ thống...
 
 ## Hướng phát triển trong tương lai
 
-*   **Tối ưu hóa mô hình cho thiết bị nhúng:** Chuyển đổi mô hình sang ONNX, TensorRT hoặc định dạng phần cứng AI chuyên dụng.
+*   **Tối ưu hóa mô hình cho thiết bị nhúng:** Chuyển đổi mô hình sang ONNX, TensorRT, TFlite hoặc định dạng phần cứng AI chuyên dụng.
 *   **Tăng cường chống giả mạo:** Tích hợp các kỹ thuật liveness detection tiên tiến (phân tích chuyển động mắt, phản xạ ánh sáng, cảm biến đa phổ).
 *   **Huấn luyện trên bộ dữ liệu lớn và đa dạng hơn:** Sử dụng Glint360K hoặc IBUG-500K để cải thiện khả năng tổng quát hóa.
 *   **Đầu tư thêm tài nguyên tính toán:** Cho phép huấn luyện với batch size và số epoch lớn hơn để đạt độ chính xác cao hơn.
@@ -294,6 +295,10 @@ Các model weights đã được huấn luyện có sẵn tại cùng link datas
 - Các model được trình bày ở trên 
 - Model MTCNN cho face detection
 - Model FasNet cho anti-spoofing
+
+
+Link model_zoo: [Model Link](https://husteduvn-my.sharepoint.com/:f:/g/personal/ky_dn215410_sis_hust_edu_vn/Etlu7CZEWr5Ao1owHA9pOk0B-wwess_BZfVLEbZTcaWSvw?e=gVMQTf)
+
 
 ## Cấu trúc thư mục dự án
 
