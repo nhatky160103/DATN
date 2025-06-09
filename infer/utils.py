@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import onnxruntime as ort
 from models.Recognition.Arcface_torch.backbones import get_model
 from models.Detection.mtcnn import MTCNN
 
@@ -51,7 +52,9 @@ def get_recogn_model(model_name: str = 'ms1mv3_arcface', backbone_name: str = 'r
             return None
 
 
-if __name__ == "__main__":
-    model = get_recogn_model('casia_webface_cmd', 'r50')
-    print(model)
 
+if __name__ == "__main__":
+    # Test PyTorch model
+    model = get_recogn_model('casia_webface_cmd', 'r50')
+    print("PyTorch model:", model)
+    

@@ -35,16 +35,12 @@ def transform_batch_image(imgs, keep_all=False):
             transformed.append(img)
         return torch.stack(transformed)
 
-def getEmbedding(rec_model=None, image=None, transform=transform_batch_image, keep_all=False):
+def getEmbedding(rec_model=None, images=None, transform=transform_batch_image, keep_all=False):
     # Transform images to tensor batch
-    image = transform(image, keep_all)
-    image = image.to(device)
+    images = transform(images, keep_all)
+    images = images.to(device)
 
     # Get embeddings for batch
     with torch.no_grad():
-        embedding = rec_model(image)
-    return embedding
-
-
-
-    
+        embeddings = rec_model(images)
+    return embeddings

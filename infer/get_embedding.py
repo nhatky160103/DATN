@@ -172,7 +172,12 @@ class EmbeddingManager:
         # ---------- Bước 2: Xử lý ảnh ----------
         aligned = []
         image_index = len(image2class)
-        class_index = max(index2class.keys(), default=-1) + 1
+        
+        # Tìm class_index mới bằng cách tìm khoảng trống trong index2class
+        used_indices = set(index2class.keys())
+        class_index = 0
+        while class_index in used_indices:
+            class_index += 1
 
         for image in images:
             try:
@@ -268,12 +273,12 @@ class EmbeddingManager:
 if __name__ == '__main__':
     
     # create_data_embeddings('Neu')
-    manager = EmbeddingManager('Huce')
+    manager = EmbeddingManager('HUCE')
     embeddings, image2class, index2class = manager.load(load_local = True)
     if embeddings is None:
         print("❌ Failed to load embeddings!")
     else:
-        print(f"✅ Loaded {embeddings.shape[0]} embeddings")
+        print(f"✅ Loaded {embeddings.shape} embeddings")
         print(f"Image to class mapping: {image2class}")
         print(f"Index to class mapping: {index2class}")
     # manager.delete_employee('000010')
