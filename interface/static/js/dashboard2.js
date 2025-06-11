@@ -92,26 +92,78 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true });
       video.srcObject = stream;
+      startAutoCapture();
     } catch (err) {
       alert('Can not open camera: ' + err.message);
       closeModal();
     }
   });
 
-  // Capture photo from camera
-  capture.addEventListener('click', () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+  // Auto capture photos with quality check
+  async function startAutoCapture() {
+    const captureInterval = 1000; // Capture every 1 second
+    
+    // Reset all counters and UI elements
+    let captureCount = 0;
+    capturedBlobs = []; // Reset captured blobs array
+    const progressFill = document.querySelector('.progress-fill');
+    const ellipsePath = document.querySelector('.ellipse-path');
+    const progressText = document.querySelector('.progress-text');
+    
+    // Reset progress UI
+    const totalLength = progressFill.getTotalLength();
+    progressFill.style.strokeDashoffset = totalLength;
+    progressText.textContent = `0/${image_per_class}`;
+    progressFill.style.stroke = '#2196F3'; // Reset to original color
+    ellipsePath.style.stroke = '#2196F3'; // Reset to original color
 
-    canvas.toBlob(blob => {
-      if (blob) {
-        capturedBlobs.push(blob);  // Thêm ảnh vào mảng
-        showToast(`✅Captured ${capturedBlobs.length} photos!`, 'success');
+    const captureTimer = setInterval(async () => {
+      if (captureCount >= image_per_class) {
+        clearInterval(captureTimer);
+        // Change both base and fill stroke colors to indicate completion
+        progressFill.style.stroke = '#4CAF50'; 
+        ellipsePath.style.stroke = '#4CAF50';
+        setTimeout(closeModal, 1000); // Close after showing completion
+        return;
       }
-    }, 'image/jpeg');
-  });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+
+      canvas.toBlob(async blob => {
+        if (blob) {
+          const formData = new FormData();
+          formData.append('image', blob);
+
+          try {
+            const response = await fetch('/check_face_quality', {
+              method: 'POST',
+              body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.score >= qscore_collect_threshold) {
+              capturedBlobs.push(blob);
+              captureCount++;
+              
+              // Update progress ellipse by revealing parts of the dashed line
+              const segmentToReveal = totalLength / image_per_class;
+              progressFill.style.strokeDashoffset = totalLength - (captureCount * segmentToReveal);
+              progressText.textContent = `${captureCount}/${image_per_class}`;
+              
+              showToast(`✅ Captured ${captureCount}/${image_per_class} photos!`, 'success');
+            }
+          } catch (error) {
+            console.error('Error checking face quality:', error);
+            showToast('❌ Error checking face quality', 'error');
+          }
+        }
+      }, 'image/jpeg');
+    }, captureInterval);
+  }
 
   // Close camera modal
   closeBtn.addEventListener('click', closeModal);
@@ -189,9 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-
 });
-
 
 
 function collectConfigData() {
@@ -203,10 +253,13 @@ function collectConfigData() {
           validation_threshold: parseFloat(document.getElementById('validation_threshold').value),
           is_anti_spoof: document.getElementById('is_anti_spoof').checked,
           anti_spoof_threshold: parseFloat(document.getElementById('anti_spoof_threshold').value),
+          qscore_threshold: parseFloat(document.getElementById('qscore_threshold').value),
       },
       identity_person: {
           l2_threshold: parseFloat(document.getElementById('l2_threshold').value),
           cosine_threshold: parseFloat(document.getElementById('cosine_threshold').value),
+          qscore_collect_threshold: parseFloat(document.getElementById('qscore_collect_threshold').value),
+          image_per_class: parseFloat(document.getElementById('image_per_class').value),
           distance_mode: document.getElementById('identity_distance_mode').value,
       },
   };

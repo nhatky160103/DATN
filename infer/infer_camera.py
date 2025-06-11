@@ -71,6 +71,7 @@ def infer_camera(config = None,
     min_face_area=config['infer_video']['min_face_area']
     bbox_threshold=config['infer_video']['bbox_threshold'] 
     required_images=config['infer_video']['required_images']
+    qscore_threshold = config['infer_video']['qscore_threshold']
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
@@ -146,7 +147,7 @@ def infer_camera(config = None,
                 
                     crop_face = origin_frame[y_1:y_2, x_1:x_2]
                     quality_score = face_q_model.inference(crop_face)
-                    if quality_score >= 0.4:  # quality threshold
+                    if quality_score >= qscore_threshold:  # quality threshold
                         if previous_message != 1 and current_time - last_sound_time > sound_delay:
                            threading.Thread(target=playsound, args=('audio/guide_keepface.mp3',), daemon=True).start()
                            last_sound_time = current_time

@@ -191,6 +191,13 @@
                                   oninput="updateValue('anti_spoof_threshold_val', this.value)">
                           <span id="anti_spoof_threshold_val">{{ config['infer_video']['anti_spoof_threshold'] }}</span>
                       </div>
+                      <div class="setting">
+                          <label for="qscore_threshold">Quality_score_threshold:</label>
+                          <input type="range" id="qscore_threshold" min="0.1" max="1" step="0.01" 
+                                  value="{{ config['infer_video']['qscore_threshold'] }}" 
+                                  oninput="updateValue('qscore_threshold_val', this.value)">
+                          <span id="qscore_threshold_val">{{ config['infer_video']['qscore_threshold'] }}</span>
+                      </div>
                   </div>
                   
                   <!-- identity_person -->
@@ -209,6 +216,20 @@
                                   value="{{ config['identity_person']['cosine_threshold'] }}" 
                                   oninput="updateValue('cosine_threshold_val', this.value)">
                           <span id="cosine_threshold_val">{{ config['identity_person']['cosine_threshold'] }}</span>
+                      </div>
+                      <div class="setting">
+                          <label for="qscore_collect_threshold">Qscore_collect_threshold:</label>
+                          <input type="range" id="qscore_collect_threshold" min="0" max="1" step="0.01" 
+                                  value="{{ config['identity_person']['qscore_collect_threshold'] }}" 
+                                  oninput="updateValue('qscore_collect_threshold_val', this.value)">
+                          <span id="qscore_collect_threshold_val">{{ config['identity_person']['qscore_collect_threshold'] }}</span>
+                      </div>
+                      <div class="setting">
+                          <label for="image_per_class">Image_per_class:</label>
+                          <input type="range" id="image_per_class" min="1" max="10" step="1" 
+                                  value="{{ config['identity_person']['image_per_class'] }}" 
+                                  oninput="updateValue('image_per_class_val', this.value)">
+                          <span id="image_per_class_val">{{ config['identity_person']['image_per_class'] }}</span>
                       </div>
                       <div class="setting">
                           <label for="identity_distance_mode">Distance_mode:</label>
@@ -280,8 +301,15 @@
             <div class="modal-content">
               <button class="close-btn" id="close-modal">&times;</button>
               <h3>Take Employee Photo</h3>
-              <video id="video" autoplay playsinline></video>
-              <button id="capture">Capture Photo</button>
+              <div class="camera-container">
+                <video id="video" autoplay playsinline></video>
+                <svg class="progress-svg" viewBox="0 0 300 400">
+                  <ellipse class="ellipse-path" cx="150" cy="200" rx="140" ry="190"/>
+                  <ellipse class="progress-fill" cx="150" cy="200" rx="140" ry="190"/>
+                </svg>
+                <div class="progress-text">0/{{ config['identity_person']['image_per_class'] }}</div>
+              </div>
+              <!-- <button id="capture">Capture Photo</button> -->
             </div>
           </div>
 
@@ -390,6 +418,10 @@
       document.getElementById(id).innerText = value;
     }
 
+  </script>
+  <script>
+    const image_per_class = {{config['identity_person']['image_per_class'] }};
+    const qscore_collect_threshold = {{ config['identity_person']['qscore_collect_threshold'] }};
   </script>
 
   <script src="{{ url_for('static', filename='js/dashboard2.js') }}"></script>

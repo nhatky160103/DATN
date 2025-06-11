@@ -60,8 +60,7 @@ class TfFaceQaulityModel(ABC):
             self.score = tf.get_default_graph().get_tensor_by_name("confidence_st:0")
             self.model_data_path = model_data_path
         end_time = time()
-        print('load model use {:.2f}ms'.format((end_time - start_time) * 1000))
-
+ 
     def inference(self, img, to_rgb=True, verbose=0):
         """extract the features from the given bgr_images using cnn."""
         grayscale = self.image_ph.get_shape()[3] == 1
