@@ -4,6 +4,8 @@ from werkzeug.utils import secure_filename
 import time
 from datetime import datetime, timedelta
 import io
+import numpy as np
+from PIL import Image
 
 from infer.get_embedding import EmbeddingManager
 from infer.infer_camera import infer_camera, check_validation
@@ -17,6 +19,7 @@ from database.firebase import (get_all_bucket_names,
                                delete_bucket, 
                                get_logo_url,
                                get_employee_count)
+from models.lightqnet.tf_face_quality_model import TfFaceQaulityModel
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -36,6 +39,8 @@ app.config['image2class'] = {}
 app.config['index2class'] = {}
 app.config['config'] = {}
 
+# Initialize face quality model
+face_quality_model = TfFaceQaulityModel()
 
 def get_default_config():
     with open('config.yaml', 'r') as file:
@@ -311,7 +316,38 @@ def get_employee_count_api():
         return {'error': 'Missing bucket_name'}, 400
     count = get_employee_count(bucket_name)
     return {'count': count}
+
+@app.route('/check_face_quality', methods=['POST'])
+def check_face_quality():
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image provided'}), 400
     
+    try:
+        # Read image from request
+        image_file = request.files['image']
+        image_bytes = image_file.read()
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        height, width = img.shape[:2]  # Get image dimensions
+        
+        # Get face quality score
+        # Crop center of the image to align face belong to elip shape
+        start_h = int(0.1 * height)
+        end_h = int(0.9 * height)
+        start_w = int(0.2 * width)
+        end_w = int(0.8 * width)
+        score = face_quality_model.inference(img[start_h:end_h, start_w:end_w])
+        
+        return jsonify({
+            'score': float(score),
+            'success': True
+        })
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
 if __name__ == '__main__':
     import logging
     logging.getLogger('werkzeug').setLevel(logging.ERROR)

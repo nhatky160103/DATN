@@ -236,12 +236,12 @@ def iresnet200_plus(pretrained=False, progress=True, **kwargs):
 if __name__ == "__main__":
     import cv2
     import time
-    model = iresnet100_plus(image_size=96)  # Specify image size explicitly
+    model = iresnet18_plus(image_size=112)  # Specify image size explicitly
     model.eval()
 
     img = cv2.imread("data/img1.jpg")
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, (96, 96))
+    img = cv2.resize(img, (112, 112))
     img = img.transpose(2, 0, 1)  # [H,W,C] -> [C,H,W]
     img = torch.from_numpy(img).float().unsqueeze(0)  # [1,C,H,W]
 

@@ -18,8 +18,6 @@ firebase_admin.initialize_app(cred, {
 
 
 
-
-
 def generate_numeric_id(bucket_name):
     ref = db.reference(f'{bucket_name}/Employees')
     data = ref.get() or {}

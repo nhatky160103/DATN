@@ -685,7 +685,6 @@ font-weight: 600;
 #addEmployee .modal-content video {
 width: 100%;
 border-radius: 10px;
-margin-bottom: 15px;
 }
 
 #addEmployee .modal-content button {
@@ -1198,6 +1197,65 @@ text-align: center;
 #deleteBucket button#showConfirmDeleteBtn:hover {
   background: linear-gradient(135deg, #c0392b 0%, #8e44ad 100%);
   transform: translateY(-2px);
+}
+
+.camera-container {
+  position: relative;
+  width: 300px; /* Đặt chiều rộng cố định */
+  height: 400px; /* Đặt chiều cao cố định để tạo hình dọc */
+  margin: 10px auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 50% / 70%; /* Tạo hình elip dọc rõ ràng hơn */
+  border: 4px solid #4CAF50; /* Thêm đường viền cho hình elip */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.camera-container video {
+  width: 100%;
+  height: 100%; /* Khiến video lấp đầy vùng chứa */
+  object-fit: cover; /* Đảm bảo video che phủ toàn bộ vùng chứa */
+  display: block;
+}
+
+/* New SVG progress styles */
+.camera-container svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible; /* Allow stroke to extend beyond bounds */
+}
+
+.ellipse-path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.5); /* Base stroke color */
+  stroke-width: 8;
+  stroke-dasharray: 15 15; /* Makes the ellipse path dashed */
+  stroke-linecap: round;
+}
+
+.progress-fill {
+  fill: none;
+  stroke: #4CAF50; /* Active stroke color */
+  stroke-width: 8;
+  stroke-dasharray: 15 15; /* Match dash pattern of base ellipse */
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease-in-out; /* Transition dashoffset */
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
 

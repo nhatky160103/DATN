@@ -1,6 +1,11 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['MP_VERBOSE'] = '0'
+os.environ['GLOG_minloglevel'] = '2'
+
+import warnings
+warnings.filterwarnings('ignore')
 
 import logging
 logging.getLogger('absl').setLevel(logging.ERROR)
@@ -8,11 +13,19 @@ logging.getLogger('tensorflow').setLevel(logging.ERROR)
 logging.getLogger('mediapipe').setLevel(logging.ERROR)
 logging.getLogger('tensorflow.python').setLevel(logging.ERROR)
 logging.getLogger('tensorflow.lite.python.lite').setLevel(logging.ERROR)
+# Add these new logging configurations
+logging.getLogger('mediapipe.python.solution_base').setLevel(logging.ERROR)
+logging.getLogger('mediapipe.python.solutions.face_detection').setLevel(logging.ERROR)
+logging.getLogger('mediapipe.python.solutions.face_mesh').setLevel(logging.ERROR)
+logging.getLogger('mediapipe.python.solutions.face_detection_connections').setLevel(logging.ERROR)
+
 
 import cv2
 cv2.setLogLevel(0)  # hoặc dùng cv2.utils.logging.setLogLevel nếu cần
 
 import mediapipe as mp
+# Suppress MediaPipe warnings
+mp.solutions.face_detection.FaceDetection._SUPPRESS_WARNINGS = True
 mp_face_detection = mp.solutions.face_detection
 # mp_drawing = mp.solutions.drawing_utils
 

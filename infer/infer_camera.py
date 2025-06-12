@@ -11,10 +11,11 @@ from .utils import get_recogn_model, mtcnn
 import time
 from .blazeFace import detect_face_and_nose
 from PIL import Image, ImageSequence
-
+from models.lightqnet.tf_face_quality_model import TfFaceQaulityModel
 # get recogn model
 arcface_model = get_recogn_model()
 antispoof_model = Fasnet()
+face_q_model = TfFaceQaulityModel()
 
 
 def yield_loading_gif_frames(gif_path):
@@ -35,9 +36,9 @@ def draw_camera_focus_box(frame, width, height, color=(0, 255, 255), thickness=1
     alpha = 0.4
 
     x1 = int(width * 0.2)
-    y1 = int(height * 0.2)
+    y1 = int(height * 0.1)
     x2 = int(width * 0.8)
-    y2 = int(height * 0.8)
+    y2 = int(height * 0.9)
     
     # Làm tối vùng ngoài
     mask = np.zeros_like(frame)
@@ -70,6 +71,7 @@ def infer_camera(config = None,
     min_face_area=config['infer_video']['min_face_area']
     bbox_threshold=config['infer_video']['bbox_threshold'] 
     required_images=config['infer_video']['required_images']
+    qscore_threshold = config['infer_video']['qscore_threshold']
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
@@ -89,6 +91,9 @@ def infer_camera(config = None,
             break
         
         face , center_point, prob = detect_face_and_nose(frame)
+
+        
+        
         if face is None or prob is None or center_point is None:
             _, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
@@ -99,7 +104,6 @@ def infer_camera(config = None,
         center_x, center_y = map(int, center_point)
         height, width, _ = frame.shape
         x1, y1, x2, y2 = map(int, face)
-
         draw_camera_focus_box(frame, width, height)
 
         if prob > bbox_threshold:
@@ -133,16 +137,25 @@ def infer_camera(config = None,
             
             if area > min_face_area*height*width:
                 if width * 0.2 < center_x < width * 0.8 and height * 0.2 < center_y < height * 0.8:
-                    if previous_message != 1 and current_time - last_sound_time > sound_delay:
-                        threading.Thread(target=playsound, args=('audio/guide_keepface.mp3',), daemon=True).start()
-                        
-                        last_sound_time = current_time
-                        previous_message = 1
-
+                
                     is_real, score = antispoof_model.analyze(origin_frame, map(int, face)) 
-                    print(is_real, score)
-                    is_reals.append((is_real, score))
-                    valid_images.append(origin_frame)
+                    
+                    x_1 = int(width * 0.2)
+                    y_1 = int(height * 0.1)
+                    x_2 = int(width * 0.8)
+                    y_2 = int(height * 0.9)
+                
+                    crop_face = origin_frame[y_1:y_2, x_1:x_2]
+                    quality_score = face_q_model.inference(crop_face)
+                    if quality_score >= qscore_threshold:  # quality threshold
+                        if previous_message != 1 and current_time - last_sound_time > sound_delay:
+                           threading.Thread(target=playsound, args=('audio/guide_keepface.mp3',), daemon=True).start()
+                           last_sound_time = current_time
+                           previous_message = 1
+
+                        is_reals.append((is_real, score))
+                        print('---->',is_real, score)
+                        valid_images.append(origin_frame)
 
                 else:
                     if previous_message != 2 and current_time - last_sound_time > sound_delay:
@@ -172,8 +185,6 @@ def infer_camera(config = None,
             break
     
         if len(valid_images) >= required_images:
-            print(f"Collect enough {required_images} valid images.")
-            
             gif_path = "interface/static/assets/Loading.gif"
             yield from yield_loading_gif_frames(gif_path)
 
@@ -196,15 +207,14 @@ def check_validation(
         config = None,
         ):
 
-    is_anti_spoof=config['infer_video']['is_anti_spoof']
-    validation_threshold=config['infer_video']['validation_threshold']
-    anti_spoof_threshold=config['infer_video']['anti_spoof_threshold'] 
-    distance_mode=config['identity_person']['distance_mode']
-    l2_threshold=config['identity_person']['l2_threshold']
-    cosine_threshold=config['identity_person']['cosine_threshold']
+    is_anti_spoof = config['infer_video']['is_anti_spoof']
+    validation_threshold = config['infer_video']['validation_threshold']
+    anti_spoof_threshold = config['infer_video']['anti_spoof_threshold'] 
+    distance_mode = config['identity_person']['distance_mode']
+    l2_threshold = config['identity_person']['l2_threshold']
+    cosine_threshold = config['identity_person']['cosine_threshold']
 
     valid_images = input['valid_images']
-
 
     if valid_images is None or len(valid_images) == 0:
         print("Không có ảnh để xử lý.")
@@ -224,49 +234,75 @@ def check_validation(
     
     predict_class = []
 
-    for i, raw_image in enumerate(valid_images):
-        image = mtcnn(raw_image)
-        if image is None:
+    # Process all images in batch with MTCNN
+    try:
+        batch_faces = mtcnn(valid_images)
+        print("Finish MTCNN")
+    except Exception as e:
+        print(f"Error in MTCNN: {e}")
+        # Fallback to detect_face_and_nose for all images
+        batch_faces = []
+        for img in valid_images:
+            face, _, _ = detect_face_and_nose(img)
+            if face is not None:
+                x1, y1, x2, y2 = map(int, face)
+                batch_faces.append(img[y1:y2, x1:x2])
+            else:
+                batch_faces.append(None)
+    
+    # Process faces and get embeddings
+    processed_faces = []
+
+    for i, (raw_image, face) in enumerate(zip(valid_images, batch_faces)):
+        if face is None:
+            # If MTCNN fails, try detect_face_and_nose
             face, _, prob = detect_face_and_nose(raw_image)
             if face is not None:
                 x1, y1, x2, y2 = map(int, face)
                 image = raw_image[y1:y2, x1:x2]
-
-            else: 
+            else:
                 image = raw_image
+        else:
+            image = face
+            
+        # Check anti-spoof if enabled
         if is_anti_spoof:
             if not input['is_reals'][i][0] and input['is_reals'][i][1] > anti_spoof_threshold:
                 continue
-
-        pred_embed = getEmbedding(arcface_model, image)
-
-        result = find_closest_person(pred_embed, 
-                                    embeddings, 
-                                    image2class, 
-                                    distance_mode=distance_mode, 
-                                    l2_threshold = l2_threshold, 
-                                    cosine_threshold = cosine_threshold)
-
-        print(result)
-        if result != -1:
-            predict_class.append(result)
-
-    class_count = Counter(predict_class)
+                
+        processed_faces.append(image)
     
-    majority_threshold = len(valid_images) * validation_threshold
+    # Get embeddings for all processed faces in batch
+    if processed_faces:
+        pred_embeds = getEmbedding(arcface_model, processed_faces)
+        
+        # Find closest person for each embedding
+        for pred_embed in pred_embeds:
+            result = find_closest_person(
+                pred_embed, 
+                embeddings, 
+                image2class, 
+                distance_mode=distance_mode, 
+                l2_threshold=l2_threshold, 
+                cosine_threshold=cosine_threshold
+            )
+            if result != -1:
+                predict_class.append(result)
+            print(result)
+            print("__"*10)
 
+    # Count predictions and check against validation threshold
+    class_count = Counter(predict_class)
+    majority_threshold = len(valid_images) * validation_threshold
 
     for cls, count in class_count.items():
         if count >= majority_threshold:
             person_id = index2class.get(cls, 'UNKNOWN')
-        
             print(f"Người được nhận diện là: {person_id}")
-
             try:
                 playsound('audio/greeting.mp3')
             except Exception as e:
                 print(f"Lỗi khi phát âm thanh: {e}")
-
             return person_id
 
     print("Unknown person")
@@ -275,7 +311,6 @@ def check_validation(
         return 'UNKNOWN'
     except Exception as e:
         print(f"Lỗi khi phát âm thanh: {e}")
-       
 
 
 
