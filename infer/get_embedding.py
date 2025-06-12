@@ -273,7 +273,7 @@ class EmbeddingManager:
 if __name__ == '__main__':
     
     # create_data_embeddings('Neu')
-    manager = EmbeddingManager('HUCE')
+    manager = EmbeddingManager('Hust')
     embeddings, image2class, index2class = manager.load(load_local = True)
     if embeddings is None:
         print("❌ Failed to load embeddings!")

@@ -10,11 +10,11 @@
 
 ## Tóm tắt
 
-Đồ án này tập trung vào việc xây dựng một **hệ thống chấm công tự động dựa trên nhận diện khuôn mặt** sử dụng các mô hình Deep Learning tiên tiến. Hệ thống giải quyết những hạn chế của phương pháp chấm công thủ công (tốn thời gian, dễ gian lận) và các hệ thống nhận diện khuôn mặt hiện tại (dễ bị tấn công giả mạo, tốc độ xử lý, yêu cầu pipeline hoàn chỉnh).
+Đồ án này tập trung vào việc xây dựng một **hệ thống chấm công tự động dựa trên nhận diện khuôn mặt** sử dụng các mô hình Deep Learning tiên tiến. Hệ thống giải quyết những hạn chế của phương pháp chấm công thủ công (tốn thời gian, dễ gian lận, khó theo giõi thời gian làm việc của nhân viên) và các hệ thống nhận diện khuôn mặt hiện tại (dễ bị tấn công giả mạo, tốc độ xử lý, thời gian thực, giới hạn về số lượng nhân viên, hạn chế về góc chụp, ánh sáng và chất lượng ảnh...).
 
-Giải pháp được đề xuất bao gồm một **pipeline xử lý hoàn chỉnh** gồm tiền xử lý ảnh (phát hiện, căn chỉnh khuôn mặt), kiểm tra chống giả mạo, trích xuất đặc trưng bằng mô hình học sâu với mạng xương sống (backbone) được tùy chỉnh, và so khớp vector nhúng. Hệ thống được tối ưu hóa về hiệu năng xử lý, đạt tốc độ nhận diện nhanh, độ chính xác cao và có khả năng tùy chỉnh linh hoạt.
+Giải pháp được đề xuất bao gồm một **pipeline xử lý hoàn chỉnh** gồm tiền xử lý ảnh (phát hiện, căn chỉnh khuôn mặt, đánh giá chất lượng khuôn mặt), kiểm tra chống giả mạo, trích xuất đặc trưng bằng mô hình học sâu với mạng xương sống (backbone) được tùy chỉnh, và so khớp vector nhúng, chấm công và lưu thông tin lên cơ sở dữ liệu thời gian thực. Hệ thống được tối ưu hóa về hiệu năng xử lý, đạt tốc độ nhận diện nhanh, độ chính xác cao và có khả năng tùy chỉnh linh hoạt khi thay đổi các cấu hình hệ thống.
 
-Đóng góp chính của đồ án là **huấn luyện mô hình trích xuất đặc trưng khuôn mặt với số lượng tham số nhỏ** sử dụng hàm loss được cải tiến (CDML) và xây dựng hoàn chỉnh hệ thống chấm công bằng nhận diện khuôn mặt chống giả mạo, đạt hiệu suất cao, phù hợp với yêu cầu triển khai thực tế.
+Đóng góp chính của đồ án là **huấn luyện mô hình trích xuất đặc trưng khuôn mặt với số lượng tham số nhỏ** sử dụng hàm loss được cải tiến (CDML) và xây dựng hoàn chỉnh hệ thống chấm công bằng nhận diện khuôn mặt chống giả mạo với sự kết hợp của nhiều mô hình học sâu nhằm nâng cao độ chính xác nhưng vẫn đảm bảo được tốc dộ xử lý để hệ thống có thể chạy thời gian thực không bị chậm, đạt hiệu suất cao, có tích hợp các thông tin chấm công cơ bản.
 
 ## Bài toán
 
@@ -27,7 +27,7 @@ Bài toán chấm công thủ công truyền thống gặp nhiều hạn chế n
 *   Dựa trên mô hình **ArcFace** - một phương pháp state-of-the-art trên nhiều tập dữ liệu, đồng thời **điều chỉnh backbone và hàm loss** để tối ưu hóa độ chính xác và tốc độ.
 *   Đề xuất hàm mất mát **Combined Dynamic Margin Loss (CDML)**, mở rộng từ ArcFace bằng cách áp dụng margin động dựa trên độ khó của từng mẫu, giúp tăng khả năng phân biệt giữa các lớp.
 *   Sử dụng kiến trúc mạng xương sống **IResNet** và các biến thể **IResNet_Lite** (r18_lite, r50_lite, r100_lite) với số lượng tham số nhỏ, phù hợp cho triển khai trên thiết bị tài nguyên hạn chế.
-*   Xây dựng **pipeline xử lý hoàn chỉnh** bao gồm thu nhận ảnh, phát hiện và căn chỉnh khuôn mặt (sử dụng MTCNN/BlazeFace), kiểm tra chống giả mạo (sử dụng FASNet/MiniFASNet), trích xuất đặc trưng và so khớp vector nhúng.
+*   Xây dựng **pipeline xử lý hoàn chỉnh** kết hợp sử dụng nhiều mô hình học sau, bao gồm thu nhận ảnh từ camera, phát hiện khuôn mặt(sử dụng MTCNN/BlazeFace),Đánh giá chất lượng khuôn mặt(sử dụng LightQNet),kiểm tra chống giả mạo(sử dụng FASNet/MiniFASNet), trích xuất đặc trưng và so khớp vector nhúng(Dùng model huấn luyện theo hàm loss đề xuất).
 *   Tích hợp với cơ sở dữ liệu **Firebase Realtime Database** để quản lý thông tin nhân sự, lịch sử chấm công và cấu hình hệ thống.
 *   Lưu trữ ảnh và vector đặc trưng trên **Cloudinary**.
 
@@ -41,11 +41,15 @@ Hệ thống được thiết kế theo mô hình pipeline xử lý các khung h
 Các thành phần chính bao gồm:
 1.  **Thu nhận ảnh đầu vào (Collect frame):** Lấy mẫu khung hình từ webcam, kiểm tra chất lượng (diện tích khuôn mặt, căn giữa). Sử dụng BlazeFace để phát hiện và căn chỉnh khuôn mặt nhanh trong giai đoạn này.
 2.  **Kiểm tra chống giả mạo (Anti-spoofing):** Sử dụng mô hình FASNet/MiniFASNet để phát hiện khuôn mặt giả mạo (ảnh in, ảnh chụp, video, mặt nạ...).
-3.  **Phát hiện và chuẩn hóa khuôn mặt:** Sử dụng MTCNN để phát hiện chính xác vùng khuôn mặt và các điểm đặc trưng (landmarks), sau đó chuẩn hóa kích thước ảnh về (112, 112).
-4.  **Trích xuất đặc trưng (Embedding):** Đưa ảnh khuôn mặt đã chuẩn hóa qua mô hình được huấn luyện (IResNet_Lite + CDML) để thu được vector đặc trưng 512 chiều.
-5.  **Đối sánh và xác định danh tính (Identification):** So sánh vector đặc trưng truy vấn với cơ sở dữ liệu vector đã lưu trữ bằng độ đo Cosine similarity hoặc Euclidean distance. Xác định danh tính dựa trên khoảng cách trung bình nhỏ nhất tới các vector trong từng lớp.
-6.  **Kiểm tra xác thực từng frame (Check validation):** Tổng hợp kết quả từ nhiều frame hợp lệ để đưa ra quyết định cuối cùng về danh tính, sử dụng ngưỡng xác nhận.
-7.  **Lưu trữ và tích hợp hệ thống:** Lưu trữ vector embedding và ảnh đại diện trên Cloudinary, thông tin nhân sự và lịch sử chấm công trên Firebase Realtime Database.
+
+3.  **Đánh giá chất lượng khuôn mặt(Face quality assessment):** Sử dụng LightQNet để đánh giá chất lượng ảnh khuôn mặt đánh giá về góc chụp, ảnh sáng, độ lớn, góc nghiêng, độ mờ từ đó lọc ra các hình ảnh khuôn mặt đạt tiêu chuẩn.
+
+4.  **Phát hiện và chuẩn hóa khuôn mặt(Face detection and standardization):** Sử dụng MTCNN để phát hiện chính xác vùng khuôn mặt và các điểm đặc trưng (landmarks), sau đó chuẩn hóa và resize kích thước ảnh về (112, 112).
+
+5.  **Trích xuất đặc trưng (Embedding):** Đưa ảnh khuôn mặt đã chuẩn hóa qua mô hình được huấn luyện (IResNet_Lite + CDML) để thu được vector đặc trưng 512 chiều.
+6.  **Đối sánh và xác định danh tính (Identification):** So sánh vector đặc trưng truy vấn với cơ sở dữ liệu vector đã lưu trữ bằng độ đo Cosine similarity hoặc Euclidean distance. Xác định danh tính dựa trên khoảng cách trung bình nhỏ nhất tới các vector trong từng lớp.
+7.  **Kiểm tra xác thực từng frame (Check validation):** Tổng hợp kết quả từ nhiều frame hợp lệ để đưa ra quyết định cuối cùng về danh tính, sử dụng ngưỡng xác nhận.
+8.  **Lưu trữ và tích hợp hệ thống:** Lưu trữ vector embedding và ảnh đại diện trên Cloudinary, thông tin nhân sự và lịch sử chấm công trên Firebase Realtime Database.
 
 ## Kết quả thực nghiệm
 
@@ -88,7 +92,7 @@ Kết quả cho thấy **CDML đạt độ chính xác khá cao** trên LFW (99.
 
 Đánh giá so sánh hàm mất mát CDML và ArcFace trên các backbone nhẹ hơn là **r18_lite** và **r50_lite**, huấn luyện trên **CASIA-WebFace**.
 
-**Bảng So sánh độ chính xác (%) của các mô hình trên các tập kiểm thử, với bộ dữ liệu huấn luyện là CASIA-WEBFACE**
+**Bảng So sánh độ chính xác (%) của các mô hình trên các tập kiểm thử, với bộ dữ liệu huấn luyện là CASIA-WEBFACE(các kết quả huấn luyện với cùng các siêu tham số chỉ thay đổi hàm loss)**
 
 | Dataset | r18_lite        |           | r50_lite        |           |
 | :------ | :-------------- | :-------- | :-------------- | :-------- |
@@ -181,14 +185,15 @@ Các mô hình **Resnet-lite** có số lượng tham số và kích thước **
 
 Thời gian suy luận của MTCNN và FasNet trên thiết bị CPU (16G Ram):
 
-**Bảng Các thông số của mô hình MTCNN và FasNet (Thiết bị cpu Ram 16G)**
+**Bảng Các thông số của mô hình MTCNN, LightQNet và FasNet (Thiết bị cpu Ram 16G)**
 
 | Mô hình | Số tham số | Thời gian suy luận (ms/image) | Kích thước (MB) |
 | :------ | :--------- | :---------------------------- | :-------------- |
 | MTCNN   | 495,850    | 289.60                        | 446.21          |
 | FasNet  | 868,146    | 35.93                         | 211.59          |
+|LightQNet| 130,915    | 11.17                         | 444.84          |
 
-Thời gian suy luận của MTCNN và FasNet cũng khá nhanh, giúp pipeline tổng thể không bị chậm đáng kể.
+Thời gian suy luận của LightQnet và FasNet cũng rất nhanh, giúp pipeline tổng thể không bị chậm đáng kể. Đối với MTCNN độ chính xác cao yêu cầu thời gian infer chậm hơn tuy nhiên có thể khắc phục bằng cách chạy song song với batchsize > 1
 
 ### Đánh giá tổng thể hệ thống nhận diện khuôn mặt
 
@@ -243,9 +248,9 @@ Hệ thống có giao diện thân thiện với các màn hình chính như:
 *   Màn hình chính chấm công
 *   Màn hình camera khi chấm công (hiển thị box khuôn mặt và vùng center)
 *   Bảng điều khiển quản trị (chỉnh sửa cấu hình hệ thống)
-*   Giao diện thêm nhân viên mới (nhập thông tin, thu thập ảnh)
+*   Giao diện thêm nhân viên mới (nhập thông tin, thu thập ảnh, upload ảnh)
 *   Giao diện hiển thị thông tin chấm công chi tiết
-*   Các chức năng xóa nhân viên, xóa bucket (công ty)
+*   Các chức năng xóa nhân viên, thêm xóa bucket (công ty)
 
 ![Màn hình chính chấm công](image_resources/open_cam_interface.png)
 
@@ -255,13 +260,17 @@ Hệ thống có giao diện thân thiện với các màn hình chính như:
 
 ![Giao diện thêm nhân viên mới](image_resources/add_employee.png)
 
+![Thu thập hình ảnh nhân viên mới](image_resources/take_employee_photo.png)
+
 ![Xuất thông tin chấm công](image_resources/timekeeping.png)
 
 ![Hiển thị chi tiết thông tin chấm công](image_resources/Timekeeping2.png)
 
 ![Xóa nhân viên](image_resources/delete_employee.png)
 
-![Xóa bucket (Công ty)](image_resources/delete_bucket.png)
+![Thêm bucket(Công ty)](image_resources/create_new_bucket.png)
+
+![Xóa bucket(Công ty)](image_resources/delete_bucket.png)
 
 Hệ thống hoạt động ổn định, nhận diện chính xác và ghi lại thời gian ra vào tự động.
 
@@ -269,7 +278,7 @@ Hệ thống hoạt động ổn định, nhận diện chính xác và ghi lạ
 
 Đồ án đã **xây dựng thành công hệ thống chấm công nhận diện khuôn mặt** với pipeline hoàn chỉnh và khả năng chống giả mạo cơ bản. Đề xuất hàm mất mát **CDML** giúp cải thiện khả năng tổng quát hóa. Các biến thể backbone **IResNet_Lite** cho phép đạt tốc độ suy luận nhanh, phù hợp thiết bị tài nguyên hạn chế. Hệ thống tích hợp với Firebase và Cloudinary cho phép quản lý dữ liệu realtime.
 
-Tuy nhiên, hệ thống vẫn còn hạn chế trong việc xử lý các ảnh có biến đổi lớn, giao diện ở mức cơ bản  phục vụ cho demo, và việc huấn luyện trên dữ liệu lớn bị giới hạn tài nguyên. Cần thực hiện thêm nhiều thử nghiệm với các tập dataset lớn hơn, nghiên cứu chuyển model sang các dạng tối ưu cho các thiết bị nhúng, hoàn thiện và phát triển giao diện quản trị hệ thống...
+Tuy nhiên, hệ thống vẫn còn hạn chế trong việc xử lý các ảnh có biến đổi lớn, giao diện ở mức cơ bản phục vụ cho demo, và việc huấn luyện trên dữ liệu lớn bị giới hạn tài nguyên. Cần thực hiện thêm nhiều thử nghiệm với các tập dataset lớn hơn, nghiên cứu chuyển model sang các dạng tối ưu cho các thiết bị nhúng, hoàn thiện và phát triển giao diện quản trị hệ thống...
 
 ## Hướng phát triển trong tương lai
 
@@ -295,6 +304,7 @@ Các model weights đã được huấn luyện có sẵn tại cùng link datas
 - Các model được trình bày ở trên 
 - Model MTCNN cho face detection
 - Model FasNet cho anti-spoofing
+- Model LightQnet cho căn chỉnh khuôn mặt
 
 
 Link model_zoo: [Model Link](https://husteduvn-my.sharepoint.com/:f:/g/personal/ky_dn215410_sis_hust_edu_vn/Etlu7CZEWr5Ao1owHA9pOk0B-wwess_BZfVLEbZTcaWSvw?e=gVMQTf)
@@ -305,9 +315,10 @@ Link model_zoo: [Model Link](https://husteduvn-my.sharepoint.com/:f:/g/personal/
 ```
 Facerecogtion/
 ├── models/
-│   ├── Recognition/               # Chứa các model nhận diện khuôn mặt
+│   ├── Recognition/              # Chứa các model nhận diện khuôn mặt
 │   │   └── Arcface_torch/        # Model ArcFace và các biến thể
 │   ├── Detection/                # Model phát hiện khuôn mặt
+|   ├── LightQNet/                # Model căn chỉnh khuôn mặt
 │   └── Anti_spoof/               # Model chống giả mạo
 ├── data/                         # Dữ liệu huấn luyện và kiểm thử
 ├── database/                     # Xử lý và lưu trữ dữ liệu
@@ -343,3 +354,5 @@ Facerecogtion/
 [8] X. An et al., "Killing Two Birds With One Stone: Efficient and Robust Training of Face Recognition CNNs by Partial FC," in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2022.
 
 [9] Z. Zhu et al., "Webface260m: A benchmark unveiling the power of million-scale deep face recognition," in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2021.
+
+[10] K. Chen, T. Yi and Q. Lv, "LightQNet: Lightweight Deep Face Quality Assessment for Risk-Controlled Face Recognition," in IEEE Signal Processing Letters, vol. 28, pp. 1878-1882, 2021.
