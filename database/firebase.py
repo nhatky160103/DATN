@@ -92,7 +92,8 @@ def add_person(bucket_name, folder_path, name: str, age: int, gender: str = 'Mal
     person_id = generate_numeric_id(bucket_name)
 
     images = upload_folder_to_cloudinary(bucket_name, person_id, folder_path)
-    update_today_timekeeping(bucket_name, person_id)
+
+
     person_data = {
         person_id: {
             "name": name,
@@ -108,6 +109,7 @@ def add_person(bucket_name, folder_path, name: str, age: int, gender: str = 'Mal
     save_path = f"{bucket_name}/Employees"
     save_data(save_path, person_data)
 
+    update_today_timekeeping(bucket_name, person_id)
     print(f"✅ Added person with ID {person_id}")
     return person_id
 
