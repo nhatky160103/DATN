@@ -138,7 +138,7 @@ def infer_camera(config = None,
             if area > min_face_area*height*width:
                 if width * 0.2 < center_x < width * 0.8 and height * 0.2 < center_y < height * 0.8:
                 
-                    is_real, score = antispoof_model.analyze(origin_frame, map(int, face)) 
+                    
                     
                     x_1 = int(width * 0.2)
                     y_1 = int(height * 0.1)
@@ -153,8 +153,9 @@ def infer_camera(config = None,
                            last_sound_time = current_time
                            previous_message = 1
 
-                        is_reals.append((is_real, score))
+                        is_real, score = antispoof_model.analyze(origin_frame, map(int, face))
                         print('---->',is_real, score)
+                        is_reals.append((is_real, score))
                         valid_images.append(origin_frame)
 
                 else:
