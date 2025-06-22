@@ -106,7 +106,8 @@ Kết quả cho thấy **CDML đạt độ chính xác khá cao** trên LFW (99.
 
 Khi sử dụng backbone **r50_lite**, CDML cho hiệu quả nổi bật hơn ArcFace trên tất cả các tập kiểm thử. Trên r18_lite, CDML cho kết quả tương đương hoặc nhỉnh hơn nhẹ so với ArcFace. CDML thể hiện tiềm năng vượt trội về độ chính xác khi kết hợp với các backbone mạnh hơn.
 
-### So sánh CDML với các phương pháp khác
+
+### Đánh giá mô hình huấn luyện trên MS1MV3
 
 Để đánh giá hiệu quả của CDML so với các phương pháp tiên tiến khác, đồ án so sánh với các phương pháp đã được công bố trên các tập validation chuẩn.
 
@@ -135,7 +136,6 @@ Kết quả cho thấy **CDML đạt hiệu suất vượt trội** trên nhiề
 Điều này chứng tỏ **CDML có khả năng tổng quát hóa mạnh mẽ** và hiệu quả trên nhiều loại dữ liệu khác nhau, đặc biệt là trong các điều kiện thách thức như góc chụp khác nhau (CFP-FP) và thay đổi về độ tuổi (AgeDB).
 
 
-### Đánh giá mô hình huấn luyện trên MS1MV3
 
 Đồ án huấn luyện các mô hình r50_lite và r100_lite trên tập dữ liệu lớn hơn là **MS1MV3** để tăng độ chính xác.
 
