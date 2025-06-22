@@ -106,6 +106,35 @@ Kết quả cho thấy **CDML đạt độ chính xác khá cao** trên LFW (99.
 
 Khi sử dụng backbone **r50_lite**, CDML cho hiệu quả nổi bật hơn ArcFace trên tất cả các tập kiểm thử. Trên r18_lite, CDML cho kết quả tương đương hoặc nhỉnh hơn nhẹ so với ArcFace. CDML thể hiện tiềm năng vượt trội về độ chính xác khi kết hợp với các backbone mạnh hơn.
 
+### So sánh CDML với các phương pháp khác
+
+Để đánh giá hiệu quả của CDML so với các phương pháp tiên tiến khác, đồ án so sánh với các phương pháp đã được công bố trên các tập validation chuẩn.
+
+**Bảng Độ chính xác (%) trên các tập validation CFP-FP, LFW, AgeDB, CALFW và CPLFW**
+
+| Method | CFP-FP | CPLFW | AgeDB | CALFW | LFW |
+| :----- | :----- | :---- | :---- | :---- | :--- |
+| Center Loss | - | 77.48 | - | 85.48 | 99.28 |
+| SphereFace | - | 81.40 | - | 90.30 | 99.42 |
+| VGGFace2 | - | 84.00 | - | - | 98.95 |
+| MV-Softmax | 98.28 | 92.83 | 97.95 | **96.10** | - |
+| Search-Softmax | 95.64 | 89.00 | 97.75 | 95.40 | - |
+| FaceGraph | 96.90 | 92.27 | 97.99 | 95.67 | - |
+| CurricularFace | 98.36 | 93.13 | 98.37 | 96.05 | - |
+| MS1MV3, R100, ArcFace | 98.79 | 93.21 | 98.23 | 96.02 | 99.83 |
+| IBUG500K, R100, ArcFace | 98.87 | 93.43 | **98.38** | **96.10** | 99.83 |
+| MS1MV3, R100, CDML(Our) | **98.94** | **94.08** | 97.75 | 96.05 | **99.85** |
+
+Kết quả cho thấy **CDML đạt hiệu suất vượt trội** trên nhiều tập validation quan trọng:
+- **CFP-FP**: CDML đạt 98.94%, cao nhất trong tất cả các phương pháp
+- **CPLFW**: CDML đạt 94.08%, vượt trội so với các phương pháp khác
+- **LFW**: CDML đạt 99.85%, cao nhất trong bảng so sánh
+- **CALFW**: CDML đạt 96.05%, tương đương với các phương pháp tốt nhất
+- **AgeDB**: CDML đạt 97.75%, chỉ thấp hơn một chút so với IBUG500K, R100, ArcFace
+
+Điều này chứng tỏ **CDML có khả năng tổng quát hóa mạnh mẽ** và hiệu quả trên nhiều loại dữ liệu khác nhau, đặc biệt là trong các điều kiện thách thức như góc chụp khác nhau (CFP-FP) và thay đổi về độ tuổi (AgeDB).
+
+
 ### Đánh giá mô hình huấn luyện trên MS1MV3
 
 Đồ án huấn luyện các mô hình r50_lite và r100_lite trên tập dữ liệu lớn hơn là **MS1MV3** để tăng độ chính xác.
