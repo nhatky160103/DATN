@@ -10,7 +10,7 @@ infer_video:
 
 identity_person:
   l2_threshold: 27.5
-  cosine_threshold: 0.75
+  cosine_threshold: 0.78
   distance_mode: 'cosine'
   qscore_collect_threshold: 0.5
   image_per_class: 2

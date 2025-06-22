@@ -16,16 +16,21 @@ mtcnn = MTCNN(
     keep_all=False,
 )
 
-def get_recogn_model(model_name: str = 'ms1mv3_arcface', backbone_name: str = 'r100'):
+def get_recogn_model(model_name: str = 'ms1mv3_112x112_cmd', backbone_name: str = 'r100'):
     model = None
     state_dict = None
 
     try:
-        if model_name == 'glint360k_cosface':
-            pretrained_path = f"models/Recognition/Arcface_torch/weights/{model_name}_{backbone_name}_fp16_0.1/backbone.pth"
-        else:
+        if model_name == 'ms1mv3_112x112_cmd':
             pretrained_path = f"models/Recognition/Arcface_torch/weights/{model_name}_{backbone_name}_fp16/backbone.pth"
-      
+        elif model_name == 'glint360k_cosface':
+            pretrained_path = f"models/Recognition/Arcface_torch/weights/{model_name}_{backbone_name}_fp16_0.1/backbone.pth"
+        elif model_name == 'ms1mv3_arcface':
+            pretrained_path = f"models/Recognition/Arcface_torch/weights/{model_name}_{backbone_name}_fp16/backbone.pth"
+        else:# use lite version
+            print('use lite version')
+            pretrained_path = f"models/Recognition/Arcface_torch/weights/ms1mv3_112x112_cmd_{backbone_name}_fp16/model.pt"
+            
         state_dict = torch.load(pretrained_path, map_location=device)
         model = get_model(backbone_name, fp16=True)
 
