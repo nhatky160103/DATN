@@ -88,7 +88,7 @@ def infer_camera(config = None,
       
         if not ret:
             print("Không thể chụp được hình ảnh")
-            break
+            continue
         origin_frame = frame.copy()
         face , center_point, prob = detect_face_and_nose(frame)
 
