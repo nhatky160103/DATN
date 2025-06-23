@@ -1,4 +1,5 @@
 let resultCheckingInterval;
+let cameraForceClosed = false;
 
 function showToast(message, isError=false) {
     const toast = document.getElementById('toast');
@@ -7,47 +8,101 @@ function showToast(message, isError=false) {
     toast.classList.remove('hidden');
     setTimeout(() => {
         toast.classList.add('hidden');
-    }, 3000);
+    }, 2000);
 }
 
 function toggleCamera() {
+    cameraForceClosed = false; // Reset trạng thái khi mở lại camera
     const cameraModal = document.getElementById("cameraModal");
     const cameraFeed = document.getElementById("cameraFeed");
     const spinner = document.getElementById("loadingSpinner");
 
+    if (!cameraModal || !cameraFeed || !spinner) {
+        console.error("❌ Không tìm thấy các element cần thiết cho camera");
+        showToast("❌ Lỗi khởi tạo camera!", true);
+        return;
+    }
+
+    if (cameraModal.classList.contains("show")) {
+        console.log("📷 Camera đã đang mở, đóng camera...");
+        closeCamera();
+        return;
+    }
+
+    cameraModal.classList.remove("show");
     cameraModal.classList.remove("hidden");
-    setTimeout(() => cameraModal.classList.add("show"), 10); // Trigger animation
+    cameraModal.offsetHeight;
+    cameraModal.classList.remove("hidden");
+    requestAnimationFrame(() => {
+        cameraModal.classList.add("show");
+    });
 
-    // Hiển thị loading
-    spinner.style.display = "block";
-    cameraFeed.style.display = "none";
-
-    // Gán stream mới (tránh cache)
+    cameraFeed.style.display = "block";
+    spinner.style.display = "none";
+    console.log("🎥 Đang mở camera...");
     cameraFeed.src = "/video_feed?" + new Date().getTime();
-
-    // Khi ảnh bắt đầu hiển thị, tắt loading + bắt đầu kiểm tra kết quả sau delay
     cameraFeed.onload = () => {
-        spinner.style.display = "none";
-        cameraFeed.style.display = "block";
-
+        console.log("✅ Camera đã load thành công");
         setTimeout(() => {
             startCameraMonitoring();
         }, 500); 
+    };
+    cameraFeed.onerror = () => {
+        console.error("❌ Lỗi khi load camera");
+        showToast("❌ Không thể kết nối camera!", true);
+        closeCamera();
     };
 }
 
 function closeCamera() {
     const cameraModal = document.getElementById("cameraModal");
     const cameraFeed = document.getElementById("cameraFeed");
+    const spinner = document.getElementById("loadingSpinner");
 
-    cameraFeed.src = ""; // Ngắt kết nối stream
+    if (!cameraModal || !cameraFeed) {
+        console.error("❌ Không tìm thấy các element cần thiết để đóng camera");
+        return;
+    }
 
+    console.log("🔒 Đang đóng camera...");
     clearInterval(resultCheckingInterval);
-
+    cameraFeed.src = "";
+    cameraFeed.onload = null;
+    cameraFeed.onerror = null;
+    cameraFeed.style.display = "none";
+    if (spinner) {
+        spinner.style.display = "flex";
+    }
     cameraModal.classList.remove("show");
     setTimeout(() => {
         cameraModal.classList.add("hidden");
-    }, 400); // Khớp với animation
+    }, 400);
+}
+
+function forceCloseCamera() {
+    cameraForceClosed = true;
+    const cameraModal = document.getElementById("cameraModal");
+    const cameraFeed = document.getElementById("cameraFeed");
+    
+    // Stop the stream immediately to release the backend camera
+    if (cameraFeed) {
+        cameraFeed.src = "";
+    }
+    
+    // Stop any ongoing polling
+    clearInterval(resultCheckingInterval);
+
+    // Animate closing the modal, then reload the page
+    if (cameraModal && cameraModal.classList.contains('show')) {
+        cameraModal.classList.remove("show");
+        // Reload after the animation finishes
+        setTimeout(() => {
+            window.location.reload();
+        }, 400); // Match animation duration
+    } else {
+        // If modal is not shown or doesn't exist, just reload
+        window.location.reload();
+    }
 }
 
 function startCameraMonitoring() {
@@ -59,10 +114,7 @@ function startCameraMonitoring() {
                     console.log("⏳ Chưa có kết quả nhận diện...");
                     return;
                 }
-
                 clearInterval(resultCheckingInterval);
-                closeCamera();
-
                 getResults(data);
             })
             .catch(error => {
@@ -74,40 +126,103 @@ function startCameraMonitoring() {
 function getResults(dataFromPolling = null) {
     const nameSpan = document.getElementById("name");
     const timeSpan = document.getElementById("time");
+    
+    // Lấy các element của overlay
+    const recognitionOverlay = document.getElementById("recognitionOverlay");
+    const recognitionCard = recognitionOverlay.querySelector('.recognition-card');
+    const recognitionName = document.getElementById("recognitionName");
+    const recognitionTime = document.getElementById("recognitionTime");
+    const recognitionStatus = document.getElementById("recognitionStatus");
+    const recognitionIcon = document.getElementById("recognitionIcon");
 
     const renderResult = (data) => {
+        // Bỏ qua nếu không có kết quả
         if (data.status === 'no_results') {
-            nameSpan.textContent = "UNKNOWN";
-            timeSpan.textContent = "0000:00:00 00:00:00";
-        } else {
-            nameSpan.textContent = data.employee_id;
-            timeSpan.textContent = new Date(data.time * 1000).toLocaleString();
-            console.log("✅ Nhận diện:", data.employee_id, data.time);
+            return;
         }
 
-        // Reset sau 3 giây
+        const formattedTime = new Date(data.time * 1000).toLocaleString();
+
+        if (data.employee_id === 'UNKNOWN') {
+            // Cập nhật trang chính
+            nameSpan.textContent = "UNKNOWN";
+            timeSpan.textContent = formattedTime;
+            
+            // Cập nhật overlay cho trường hợp lỗi
+            recognitionName.textContent = "UNKNOWN";
+            recognitionTime.textContent = formattedTime;
+            recognitionStatus.textContent = "Failed to checkin!";
+            recognitionIcon.textContent = "❌";
+            recognitionCard.classList.add('error');
+        } else {
+            // Cập nhật trang chính
+            nameSpan.textContent = data.employee_id;
+            timeSpan.textContent = formattedTime;
+            
+            // Cập nhật overlay cho trường hợp thành công
+            recognitionName.textContent = data.employee_id;
+            recognitionTime.textContent = formattedTime;
+            recognitionStatus.textContent = "Successfully!";
+            recognitionIcon.textContent = "✅";
+            recognitionCard.classList.remove('error');
+        }
+        
+        // Hiển thị overlay với animation
+        recognitionOverlay.classList.add("show");
+        
+        // Tự động ẩn overlay sau 3 giây, sau đó tắt camera và mở lại camera để nhận diện người tiếp theo
         setTimeout(() => {
-            nameSpan.textContent = "--";
-            timeSpan.textContent = "--";
+            recognitionOverlay.classList.remove("show");
+            closeCamera();
+            setTimeout(() => {
+                if (!cameraForceClosed) {
+                    waitForCameraReadyAndOpen();
+                }
+            }, 500); // delay ngắn, sau đó polling tới khi backend sẵn sàng
         }, 3000);
     };
 
     if (dataFromPolling) {
         renderResult(dataFromPolling);
-        closeCamera(); 
+        // Không cần setTimeout ở đây nữa, vì đã được xử lý bên trong renderResult
     } else {
         fetch('/get_results')
             .then(response => response.json())
             .then(renderResult)
             .catch(error => {
-                nameSpan.textContent = "--";
-                timeSpan.textContent = `Error: ${error}`;
+                console.error("Lỗi get_results:", error);
             });
     }
 }
 
+function waitForCameraReadyAndOpen() {
+    function check() {
+        fetch('/camera_status')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ready') {
+                    toggleCamera();
+                } else {
+                    setTimeout(check, 300); // thử lại sau 300ms
+                }
+            });
+    }
+    check();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const bucketSelect = document.getElementById('bucketSelect');
+    
+    // Đảm bảo nút camera hoạt động
+    const cameraButton = document.querySelector('button[onclick="toggleCamera()"]');
+    if (cameraButton) {
+        // Thêm event listener backup
+        cameraButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log("🔘 Nút camera được click");
+            toggleCamera();
+        });
+    }
     
     // Lắng nghe sự thay đổi trong dropdown
     bucketSelect.addEventListener('change', function() {
@@ -150,6 +265,12 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(error => console.error('Error:', error));
     }
+    
+    // Debug: Kiểm tra các element quan trọng
+    console.log("🔍 Kiểm tra các element quan trọng:");
+    console.log("- Camera Modal:", document.getElementById("cameraModal") ? "✅" : "❌");
+    console.log("- Camera Feed:", document.getElementById("cameraFeed") ? "✅" : "❌");
+    console.log("- Loading Spinner:", document.getElementById("loadingSpinner") ? "✅" : "❌");
   });
 
 

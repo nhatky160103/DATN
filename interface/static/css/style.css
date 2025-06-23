@@ -196,8 +196,8 @@ button:hover {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px) saturate(180%);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -215,20 +215,47 @@ button:hover {
 /* Khung camera đẹp, glow + sáng */
 .camera-content {
     position: relative;
-    background: linear-gradient(145deg, #e0e0e0, #fdfdfd);
+    background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
     padding: 1.5rem;
-    border-radius: 20px;
-    max-width: 720px;
-    width: 90%;
+    border-radius: 25px;
+    max-width: 800px;
+    width: 95%;
     box-shadow:
-        0 10px 25px rgba(0, 0, 0, 0.15),
-        0 0 15px rgba(0, 170, 255, 0.3);
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        0 0 30px rgba(0, 170, 255, 0.2);
     transform: scale(0.9);
     animation: popupIn 0.5s ease forwards;
-    border: 1px solid rgba(0, 170, 255, 0.2);
-    display: flex;               /* Thêm để căn giữa nội dung */
-    justify-content: center;     /* Căn giữa nội dung theo chiều ngang */
-    align-items: center;         /* Căn giữa nội dung theo chiều dọc */
+    border: 2px solid rgba(0, 170, 255, 0.3);
+    overflow: visible; /* Cho phép nút close hiển thị bên ngoài */
+}
+
+.camera-wrapper {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    background-color: #000;
+}
+
+#cameraFeed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    display: block;
+}
+
+.spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
 }
 
 /* Animation scale-in */
@@ -238,33 +265,154 @@ button:hover {
 }
 
 /* Video có viền sáng + shadow + bo góc */
-video {
-    width: 100%;                 /* Đảm bảo video luôn đầy khung */
-    max-height: 80vh;            /* Hạn chế chiều cao video để không bị vỡ */
-    border-radius: 16px;
-    border: 4px solid rgba(0, 170, 255, 0.4);
+#cameraFeed {
+    width: 100%;
+    max-height: 80vh;
+    border-radius: 20px;
+    border: 3px solid rgba(0, 170, 255, 0.4);
     box-shadow:
-        0 0 8px rgba(0, 170, 255, 0.6),
-        0 15px 30px rgba(0, 0, 0, 0.3);
-    display: block;              /* Hiển thị video dạng block */
-    object-fit: contain;         /* Giữ tỷ lệ video, tránh méo */
+        0 0 20px rgba(0, 170, 255, 0.6),
+        0 20px 40px rgba(0, 0, 0, 0.4);
+    display: block;
+    object-fit: contain;
 }
 
 /* Spinner loading fancy */
 .spinner {
-    border: 5px solid rgba(255, 255, 255, 0.3);
-    border-top: 5px solid #00bcd4;
-    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 50px auto;
     width: 50px;
     height: 50px;
-    animation: spin 1s linear infinite;
-    margin: 50px auto;
-    box-shadow: 0 0 15px rgba(0, 188, 212, 0.4);
+    position: relative;
+    z-index: 10;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.spinner img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(0, 188, 212, 0.4);
+    display: block;
+}
+
+/* Recognition overlay - Hiển thị kết quả nhận diện */
+.recognition-overlay {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    z-index: 20;
+    opacity: 0;
+    transform: translate(-50%, -30px);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+}
+
+.recognition-overlay.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+}
+
+.recognition-card {
+    background: linear-gradient(135deg, #00d4ff, #0099cc);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    min-width: 280px;
+    transform: translateX(0);
+    transition: all 0.3s ease;
+}
+
+.recognition-card:hover {
+    transform: translateX(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+.recognition-icon {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.recognition-icon span {
+    font-size: 2.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.recognition-info h3 {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.recognition-info p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    margin: 0 0 12px 0;
+    text-align: center;
+    font-weight: 500;
+}
+
+.recognition-status {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    text-align: center;
+    font-weight: 600;
+    backdrop-filter: blur(5px);
+}
+
+/* Camera status indicator */
+.camera-status {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 20;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 15px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: #00ff88;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+}
+
+.status-text {
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
 }
 
 /* Nút đóng: giữa top + chuyển hiệu ứng đẹp */
@@ -277,13 +425,13 @@ video {
     color: #111;
     font-weight: bold;
     border: none;
-    padding: 6px 20px;
-    border-radius: 12px;
+    padding: 8px 24px;
+    border-radius: 15px;
     font-size: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     cursor: pointer;
     transition: all 0.3s ease, background-color 0.2s ease;
-    z-index: 10;
+    z-index: 30;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -293,8 +441,8 @@ video {
 .close-btn:hover {
     background: linear-gradient(to right, #ff416c, #ff4b2b);
     color: white;
-    transform: translate(-50%, -100%) scale(1.05); /* giữ nguyên translate gốc + thêm scale */
-    box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5);
+    transform: translate(-50%, -100%) scale(1.05);
+    box-shadow: 0 8px 25px rgba(255, 65, 108, 0.6);
 }
 
 
@@ -360,26 +508,75 @@ video {
     display: none;
 }
 
-/* Toast */
-.toast {
+/* Toast (New, simplified approach) */
+.toast-container {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: #4CAF50;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    pointer-events: none;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.toast {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
     color: white;
-    padding: 15px 25px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    animation: fadeInOut 3s ease forwards;
+    padding: 15px 30px;
+    border-radius: 25px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    font-weight: 600;
+    font-size: 1rem;
+    text-align: center;
+    min-width: 300px;
+    max-width: 90%;
+    
+    /* Animation state */
+    opacity: 0;
+    transform: translateY(-150%);
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+    pointer-events: auto;
 }
 
-@keyframes fadeInOut {
-    0% { opacity: 0; transform: translateY(20px); }
-    10% { opacity: 1; transform: translateY(0); }
-    90% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(20px); }
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
 }
 
+.toast.error {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+}
+
+/* Nút đóng camera - Thêm vào góc trên phải */
+.camera-close-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.camera-close-btn:hover {
+    background: #ff416c;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(255, 65, 108, 0.4);
+}
 
 #loading-overlay {
     display: none;
@@ -393,4 +590,103 @@ video {
     color: white;
     font-size: 1.5rem;
     font-weight: bold;
+}
+
+/* Responsive design for camera modal */
+@media (max-width: 768px) {
+    .camera-content {
+        padding: 1rem;
+        max-width: 95%;
+        border-radius: 20px;
+    }
+    
+    .camera-close-btn {
+        top: 10px;
+        right: 10px;
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+    }
+    
+    .recognition-overlay {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .recognition-card {
+        min-width: auto;
+        padding: 15px;
+    }
+    
+    .recognition-info h3 {
+        font-size: 1.2rem;
+    }
+    
+    .recognition-info p {
+        font-size: 0.9rem;
+    }
+    
+    .camera-status {
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+    }
+    
+    .status-indicator {
+        justify-content: center;
+    }
+    
+    .toast {
+        min-width: 250px;
+        padding: 12px 25px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .camera-content {
+        padding: 0.5rem;
+        border-radius: 15px;
+    }
+    
+    .camera-close-btn {
+        top: 8px;
+        right: 8px;
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+    
+    .recognition-card {
+        padding: 12px;
+    }
+    
+    .recognition-info h3 {
+        font-size: 1rem;
+    }
+    
+    .recognition-info p {
+        font-size: 0.8rem;
+    }
+    
+    .recognition-status {
+        font-size: 0.8rem;
+        padding: 6px 12px;
+    }
+    
+    .close-btn {
+        padding: 6px 16px;
+        font-size: 14px;
+    }
+    
+    .toast {
+        min-width: 200px;
+        padding: 10px 20px;
+        font-size: 0.8rem;
+    }
+}
+
+.recognition-card.error {
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
 }

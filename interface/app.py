@@ -186,8 +186,11 @@ def video_feed():
     print('all keys:',  app.config['config'].keys())
     try:
         bucket_name = get_or_set_default_bucket()
-        return Response(infer_camera(config = app.config['config'][bucket_name], 
-        result_queue=camera_data), mimetype='multipart/x-mixed-replace; boundary=frame')
+        # Không giữ reference tới stream cũ, chỉ trả về Response mới mỗi lần
+        return Response(
+            infer_camera(config=app.config['config'][bucket_name], result_queue=camera_data),
+            mimetype='multipart/x-mixed-replace; boundary=frame'
+        )
     except Exception as e:
         print(f"Error streaming video: {e}")
         return "Error streaming video"
@@ -195,7 +198,6 @@ def video_feed():
 
 @app.route('/get_results', methods=['GET'])
 def get_results():
-
     bucket_name = get_or_set_default_bucket()
 
     embeddings = app.config['embeddings'].get(bucket_name)
@@ -206,9 +208,13 @@ def get_results():
         input_data = camera_data.get()
         employee_id = check_validation(input_data, embeddings, image2class, index2class, app.config['config'][bucket_name])
         process_check_in_out(bucket_name, employee_id)
+        
+        # Trả về kết quả với thông tin chi tiết hơn
         return jsonify({
             'employee_id': employee_id,
             'time': datetime.now().timestamp(),
+            'recognition_id': input_data.get('recognition_id', 0),
+            'status': 'success'
         })
     else:
         return jsonify({"status": "no_results", "message": "No results available yet"})
@@ -347,6 +353,15 @@ def check_face_quality():
             'error': str(e),
             'success': False
         }), 500
+
+@app.route('/camera_status')
+def camera_status():
+    cap = cv2.VideoCapture(0)
+    if cap.isOpened():
+        cap.release()
+        return jsonify({"status": "ready"})
+    else:
+        return jsonify({"status": "busy"})
 
 if __name__ == '__main__':
     import logging

@@ -85,15 +85,13 @@ def infer_camera(config = None,
     last_sound_time = 0
     while True:
         ret, frame = cap.read()
-        origin_frame = frame.copy()
+      
         if not ret:
             print("Không thể chụp được hình ảnh")
             break
-        
+        origin_frame = frame.copy()
         face , center_point, prob = detect_face_and_nose(frame)
 
-        
-        
         if face is None or prob is None or center_point is None:
             _, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
@@ -312,6 +310,5 @@ def check_validation(
         return 'UNKNOWN'
     except Exception as e:
         print(f"Lỗi khi phát âm thanh: {e}")
-
 
 

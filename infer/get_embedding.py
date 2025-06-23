@@ -272,24 +272,24 @@ class EmbeddingManager:
 
 if __name__ == '__main__':
     
-    manager = EmbeddingManager('Hust_100')
-    embeddings, image2class, index2class = manager.load(load_local = False)
-    if embeddings is None:
-        print("❌ Failed to load embeddings!")
-    else:
-        print(f"✅ Loaded {embeddings.shape} embeddings")
-        print(f"Image to class mapping: {image2class}")
-        print(f"Index to class mapping: {index2class}")
+    manager = EmbeddingManager('Hust_10')
+    # embeddings, image2class, index2class = manager.load(load_local = True)
+    # if embeddings is None:
+    #     print("❌ Failed to load embeddings!")
+    # else:
+    #     print(f"✅ Loaded {embeddings.shape} embeddings")
+    #     print(f"Image to class mapping: {image2class}")
+    #     print(f"Index to class mapping: {index2class}")
 
-    # image_folder = 'models/Recognition/Arcface_torch/dataset/vietnamese-celebrity-face'
-    # for person_name in os.listdir(image_folder)[50:100]:
-    #     person_path = os.path.join(image_folder, person_name)
-    #     age = np.random.randint(20, 41)
-    #     salary = np.random.randint(1000, 10000)
-    #     year = np.random.randint(1, 20)
-    #     person_email_name = person_name.replace(' ', '_')
-    #     gender = np.random.choice(['Male', 'Female'])
-    #     manager.add_employee(person_path, person_name, age, gender, salary, f'{person_email_name}@gmail.com', year)
+    image_folder = 'models/Recognition/Arcface_torch/dataset/Hust_10'
+    for person_name in os.listdir(image_folder):
+        person_path = os.path.join(image_folder, person_name)
+        age = np.random.randint(20, 41)
+        salary = np.random.randint(1000, 10000)
+        year = np.random.randint(1, 20)
+        person_email_name = person_name.replace(' ', '_')
+        gender = np.random.choice(['Male', 'Female'])
+        manager.add_employee(person_path, person_name, age, gender, salary, f'{person_email_name}@gmail.com', year)
 
 
 
