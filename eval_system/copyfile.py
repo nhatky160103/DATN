@@ -67,12 +67,12 @@ def main():
                 )
                 # Nếu xác định đúng (danh tính trùng với folder gốc)
                     # Tạo folder đích nếu chưa có
-                    dest_folder = os.path.join(VN_CELEB_MINI, person_id)
-                    os.makedirs(dest_folder, exist_ok=True)
-                    dest_path = os.path.join(dest_folder, os.path.basename(img_path))
-                    # Nếu file chưa tồn tại thì copy
-                    if not os.path.exists(dest_path):
-                        shutil.copy2(img_path, dest_path)
+                dest_folder = os.path.join(VN_CELEB_MINI, person_id)
+                os.makedirs(dest_folder, exist_ok=True)
+                dest_path = os.path.join(dest_folder, os.path.basename(img_path))
+                # Nếu file chưa tồn tại thì copy
+                if not os.path.exists(dest_path):
+                    shutil.copy2(img_path, dest_path)
             except Exception as e:
                 print(f"❌ Error processing {img_path}: {e}")
 

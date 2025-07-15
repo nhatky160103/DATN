@@ -220,7 +220,7 @@ class CosFace(torch.nn.Module):
         return logits
 
 if __name__ == "__main__":
-    # Example usage
+    # Example usage (4 identity(class) and vector dim = 3)
     logits = torch.tensor([
     [0.1, 0.2, 0.7],
     [0.3, 0.4, 0.3],
@@ -228,8 +228,8 @@ if __name__ == "__main__":
     [0.9, 0.05, 0.05],
 ], dtype=torch.float32)
 
-    labels = torch.tensor([2, 1, -1, 0])
-    loss = CombinedDynamicMarginLoss_arc(64, 1, 0.45, 0.0)
+    labels = torch.tensor([2, 1, 1, 0])
+    loss = CombinedDynamicMarginLoss(64, 1, 0.5, 0.0)
     output = loss(logits, labels)
     print(output)
 
