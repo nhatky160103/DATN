@@ -191,4 +191,23 @@ if __name__ == "__main__":
     # image_list = get_images_from_cloudinary('Hust', '000000')
     # print(image_list)
     # upload_embedding_to_cloudinary('Hust', 'data/data_source')
-    delete_bucket_from_cloudinary('Huce')
+    # delete_folder_from_cloudinary('Hust_10', '000001')
+    # cloudinary.api.delete_folder('Hust_10/Employees/000000')
+    import cloudinary
+    import cloudinary.api
+
+    prefix = 'Hust_10/'
+
+    # Lấy danh sách resource theo prefix
+    resources = cloudinary.api.resources(type="upload", prefix=prefix, max_results=100)
+
+    if resources['resources']:
+        print('tRUE')
+        public_ids = []
+
+        for r in resources['resources']:
+            print(r['public_id'], "backup:", r.get('backup'), "placeholder:", r.get('placeholder'))
+            
+
+    
+    

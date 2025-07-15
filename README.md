@@ -31,12 +31,38 @@ Bài toán chấm công thủ công truyền thống gặp nhiều hạn chế n
 *   Tích hợp với cơ sở dữ liệu **Firebase Realtime Database** để quản lý thông tin nhân sự, lịch sử chấm công và cấu hình hệ thống.
 *   Lưu trữ ảnh và vector đặc trưng trên **Cloudinary**.
 
+### Minh họa các hàm mất mát và framework
+
+#### Hàm mất mát ArcFace
+
+![Minh họa hàm mất mát ArcFace](image_resources/Arcface_loss.png)
+
+*Hàm mất mát ArcFace (Additive Angular Margin Loss) bổ sung một biên góc (angular margin) vào hàm softmax, giúp tăng khả năng phân biệt giữa các lớp bằng cách buộc các vector đặc trưng của cùng một lớp phải gần nhau hơn trên hypersphere, còn các lớp khác thì cách xa nhau một góc nhất định. Điều này giúp cải thiện đáng kể hiệu suất nhận diện khuôn mặt so với softmax truyền thống.*
+
+#### Hàm mất mát Combined Dynamic Margin Loss (CDML)
+
+![Minh họa hàm mất mát CDML](image_resources/CDML_loss.png)
+
+*Hàm mất mát CDML (Combined Dynamic Margin Loss) là cải tiến từ ArcFace, trong đó margin được điều chỉnh động dựa trên độ khó của từng mẫu (khoảng cách giữa mẫu dương và mẫu âm gần nhất). Điều này giúp mô hình học tốt hơn với các trường hợp khó, tăng khả năng tổng quát hóa và giảm lỗi nhận nhầm hoặc từ chối nhầm trong nhận diện khuôn mặt.*
+
+
+![Minh họa framework distillation](image_resources/distillation_framework.png)
+
+*Hình minh họa quá trình Knowledge Distillation, trong đó một mô hình lớn (teacher) truyền đạt tri thức cho một mô hình nhỏ hơn (student) thông qua việc tối ưu hóa không chỉ loss thông thường (như cross-entropy) mà còn loss giữa các phân phối đầu ra (soft targets) của teacher và student. Điều này giúp mô hình student học được các đặc trưng tổng quát hóa tốt hơn, đạt hiệu suất cao dù có ít tham số hơn, rất phù hợp cho các ứng dụng nhận diện khuôn mặt trên thiết bị tài nguyên hạn chế.*
+
+
 ## Kiến trúc hệ thống
 
 Hệ thống được thiết kế theo mô hình pipeline xử lý các khung hình từ camera.
 
 
 ![Luồng hoạt động của hệ thống](image_resources/pipeline.png)
+
+#### Framework distillation tổng thể
+
+
+
+*Hình trên minh họa framework distillation hoặc pipeline tổng thể của hệ thống nhận diện khuôn mặt. Các thành phần chính bao gồm: thu nhận ảnh, phát hiện và căn chỉnh khuôn mặt, kiểm tra chống giả mạo, đánh giá chất lượng khuôn mặt, trích xuất đặc trưng, đối sánh và xác định danh tính, xác thực nhiều frame, và lưu trữ thông tin lên hệ thống dữ liệu. Việc kết hợp nhiều mô hình và kỹ thuật học sâu giúp hệ thống đạt hiệu suất cao, chống giả mạo và hoạt động ổn định trong thực tế.*
 
 Các thành phần chính bao gồm:
 1.  **Thu nhận ảnh đầu vào (Collect frame):** Lấy mẫu khung hình từ webcam, kiểm tra chất lượng (diện tích khuôn mặt, căn giữa). Sử dụng BlazeFace để phát hiện và căn chỉnh khuôn mặt nhanh trong giai đoạn này.
@@ -125,6 +151,7 @@ Khi sử dụng backbone **r50_lite**, CDML cho hiệu quả nổi bật hơn Ar
 | MS1MV3, R100, ArcFace | 98.79 | 93.21 | 98.23 | 96.02 | 99.83 |
 | IBUG500K, R100, ArcFace | 98.87 | 93.43 | **98.38** | **96.10** | 99.83 |
 | MS1MV3, R100, CDML(Our) | **98.94** | **94.08** | 97.75 | 96.05 | **99.85** |
+| MS1MV3, R_lightweight, CDML+DL(Our) | 97.98 | 92.48 | 97.03 | 95.55 | 99.76 |
 
 Kết quả cho thấy **CDML đạt hiệu suất vượt trội** trên nhiều tập validation quan trọng:
 - **CFP-FP**: CDML đạt 98.94%, cao nhất trong tất cả các phương pháp
@@ -210,7 +237,19 @@ So sánh các thông số về số lượng tham số, kích thước mô hình
 | R50_lite    | 14,120,800   | 53.87           | 39.39                         | 1.60   |
 | R100_lite   | 19,521,312   | 74.47           | 79.10                         | 3.05   |
 
-Các mô hình **Resnet-lite** có số lượng tham số và kích thước **nhỏ hơn đáng kể** (ví dụ: R100_lite giảm khoảng 70% kích thước so với R100). Tốc độ suy luận của Resnet-lite cũng **vượt trội hơn** (ví dụ: R18_lite nhanh hơn khoảng 2.76 lần so với R18). Yêu cầu tính toán (GFLOPs) cũng giảm đáng kể (ví dụ: R100_lite giảm khoảng 75% so với R100). Điều này cho thấy các mô hình Lite phù hợp cho triển khai trên thiết bị có tài nguyên hạn chế và yêu cầu thời gian thực.
+### Bảng so sánh thông số các model
+
+| Mô hình        | Số tham số   | Kích thước (MB) | Thời gian suy luận (ms/image) | GFLOPs |
+|:-------------- |:------------:|:---------------:|:-----------------------------:|:------:|
+| R18            | 24,025,600   | 91.65           | 46.40                         | 2.63   |
+| R34            | 34,139,328   | 130.20          | 74.92                         | 4.48   |
+| R50            | 43,590,848   | 166.28          | 108.02                        | 6.33   |
+| R100           | 65,156,160   | 248.55          | 194.91                        | 12.13  |
+| **R18_lite**   | 9,222,656    | 35.70           | 16.82                         | 0.67   |
+| R34_lite       | 11,754,336   | 44.84           | 26.20                         | 1.13   |
+| R50_lite       | 14,120,800   | 53.87           | 39.39                         | 1.60   |
+| R100_lite      | 19,521,312   | 74.47           | 79.10                         | 3.05   |
+| R_lightweight  | 5,086,432    | 19.43           | 8.71                          | 0.098  |
 
 Thời gian suy luận của MTCNN và FasNet trên thiết bị CPU (16G Ram):
 

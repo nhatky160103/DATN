@@ -62,6 +62,12 @@ function startCameraMonitoring() {
 
                 clearInterval(resultCheckingInterval);
                 closeCamera();
+                
+                //Add this scripts to continue open camera
+                // setTimeout(() => {
+                //     toggleCamera();
+                // }, 4000);
+
 
                 getResults(data);
             })
