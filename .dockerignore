@@ -1,0 +1,58 @@
+# Python cache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+.venv2/
+env/
+venv/
+local_embeddings/
+.vscode/
+
+*.env
+.env
+serviceAccountKey.json
+database/serviceAccountKey.json
+dummy_run.sh
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Git
+.git/
+.gitignore
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Datasets / Large files
+*.csv
+*.h5
+*.pkl
+*.pth
+*.pt
+*.zip
+*.tar
+*.tar.gz
+*.pb
+# Build outputs
+build/
+dist/
+*.egg-info/
+
+# Node / Frontend (nếu có UI riêng)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Models (chỉ giữ thư mục, không copy weights cũ)
+app/models/*
+!app/models/.gitkeep

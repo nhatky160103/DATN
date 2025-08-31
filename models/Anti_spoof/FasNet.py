@@ -5,8 +5,8 @@ from typing import Union
 import cv2
 import numpy as np
 
-first_model_weight_file = 'models/Anti_spoof/weights/2.7_80x80_MiniFASNetV2.pth'
-second_model_weight_file = 'models/Anti_spoof/weights/4_0_0_80x80_MiniFASNetV1SE.pth'
+first_model_weight_file = 'models/weights/2.7_80x80_MiniFASNetV2.pth'
+second_model_weight_file = 'models/weights/4_0_0_80x80_MiniFASNetV1SE.pth'
 class Fasnet:
 
     def __init__(self):

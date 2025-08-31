@@ -19,7 +19,8 @@ from database.firebase import (get_all_bucket_names,
                                delete_bucket, 
                                get_logo_url,
                                get_employee_count)
-from models.lightqnet.tf_face_quality_model import TfFaceQaulityModel
+
+from models.lightqnet.tf_face_quality_model import TfFaceQualityModel
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -40,7 +41,7 @@ app.config['index2class'] = {}
 app.config['config'] = {}
 
 # Initialize face quality model
-face_quality_model = TfFaceQaulityModel()
+face_quality_model = TfFaceQualityModel()
 
 def get_default_config():
     with open('config.yaml', 'r') as file:

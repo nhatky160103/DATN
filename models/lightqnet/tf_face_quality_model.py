@@ -40,13 +40,14 @@ from .common import load_model
 
 # Sử dụng đường dẫn tuyệt đối cho file model
 current_dir = os.path.dirname(os.path.abspath(__file__))
-TF_FEAT_MODEL_PATH = os.path.join(current_dir, 'lightqnet-dm050.pb')
+# TF_FEAT_MODEL_PATH = os.path.join(current_dir, 'lightqnet-dm025.pb')
+TF_FEAT_MODEL_PATH = 'models/weights/lightqnet-dm025.pb'
 TF_FEAT_IMG_W = 96
 TF_FEAT_IMG_H = 96
 
 
 # @singleton
-class TfFaceQaulityModel(ABC):
+class TfFaceQualityModel(ABC):
     def __init__(self, model_data_path=TF_FEAT_MODEL_PATH, image_w=TF_FEAT_IMG_W, image_h=TF_FEAT_IMG_H):
         self.image_w = image_w
         self.image_h = image_h
@@ -84,19 +85,22 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--image',
                         help='image path',
-                        default='images/Aaron_Eckhart_0001.jpg')
+                        default='models/lightqnet/test.jpg')
     parser.add_argument('--batch_size',
                         type=int, default=1,
                         help='Batch size.')
     parser.add_argument('--num_batches',
-                        type=int, default=10,
+                        type=int, default=1,
                         help='Number of batches to run.')
     args = parser.parse_args()
 
     print('batch_size', str(args.batch_size))
 
+    print(os.path.exists(args.image))
     img = cv2.imread(args.image)
-    face_qaulity_predictor = TfFaceQaulityModel()
+    # if img is None:
+    #     raise FileNotFoundError(f"Không load được ảnh từ {args.image}")
+    face_qaulity_predictor = TfFaceQualityModel()
 
     for _ in range(10):
         score = face_qaulity_predictor.inference(img)
@@ -109,8 +113,6 @@ if __name__ == '__main__':
         img2 = img + i*np.random.random(img.shape)*10
         img2 = img2.astype(np.uint8)
         score = face_qaulity_predictor.inference(img2)
-        # cv2.imshow('img', img2)
-        # cv2.waitKey(1)
         print(score)
     print('average %.2f ms' % ((time() - t1)*1000./iters))
     print('----------------')

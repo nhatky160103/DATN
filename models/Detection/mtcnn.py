@@ -30,8 +30,9 @@ class PNet(nn.Module):
         self.training = False
 
         if pretrained:
-            state_dict_path = os.path.join(os.path.dirname(__file__), 'pretrained/pnet.pt')
-            state_dict = torch.load(state_dict_path)
+            # state_dict_path = os.path.join(os.path.dirname(__file__), 'pretrained/pnet.pt')
+            state_dict_path = "models/weights/pnet.pt"
+            state_dict = torch.load(state_dict_path, weights_only=True)
             self.load_state_dict(state_dict)
 
     def forward(self, x):
@@ -75,8 +76,9 @@ class RNet(nn.Module):
         self.training = False
 
         if pretrained:
-            state_dict_path = os.path.join(os.path.dirname(__file__), 'pretrained/rnet.pt')
-            state_dict = torch.load(state_dict_path)
+            # state_dict_path = os.path.join(os.path.dirname(__file__), 'pretrained/rnet.pt')
+            state_dict_path = "models/weights/rnet.pt"
+            state_dict = torch.load(state_dict_path, weights_only=True)
             self.load_state_dict(state_dict)
 
     def forward(self, x):
@@ -128,8 +130,9 @@ class ONet(nn.Module):
         self.training = False
 
         if pretrained:
-            state_dict_path = os.path.join(os.path.dirname(__file__), 'pretrained/onet.pt')
-            state_dict = torch.load(state_dict_path)
+            # state_dict_path = os.path.join(os.path.dirname(__file__), 'pretrained/onet.pt')
+            state_dict_path = "models/weights/onet.pt"
+            state_dict = torch.load(state_dict_path, weights_only=True)
             self.load_state_dict(state_dict)
 
     def forward(self, x):

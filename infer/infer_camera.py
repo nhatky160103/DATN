@@ -11,11 +11,12 @@ from .utils import get_recogn_model, mtcnn
 import time
 from .blazeFace import detect_face_and_nose
 from PIL import Image, ImageSequence
-from models.lightqnet.tf_face_quality_model import TfFaceQaulityModel
+from models.lightqnet.tf_face_quality_model import TfFaceQualityModel
 # get recogn model
 arcface_model = get_recogn_model()
 antispoof_model = Fasnet()
-face_q_model = TfFaceQaulityModel()
+face_q_model = TfFaceQualityModel()
+
 
 
 def yield_loading_gif_frames(gif_path):
