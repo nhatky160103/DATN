@@ -1,5 +1,5 @@
 import cv2
-from models.Anti_spoof.FasNet import Fasnet
+from models.Anti_spoof.FasNet_onnx import FasnetOnnx
 import numpy as np
 from collections import Counter
 from .infer_image import getEmbedding
@@ -7,15 +7,15 @@ from .identity_person import find_closest_person
 from playsound import playsound
 import yaml
 import threading
-from .utils import get_recogn_model, mtcnn
+from .utils import load_onnx_model
 import time
 from .blazeFace import detect_face_and_nose
 from PIL import Image, ImageSequence
-from models.lightqnet.tf_face_quality_model import TfFaceQualityModel
+from models.lightqnet.tf_face_quality_model_onnx import OnnxFaceQualityModel
 # get recogn model
-arcface_model = get_recogn_model()
-antispoof_model = Fasnet()
-face_q_model = TfFaceQualityModel()
+arcface_model = load_onnx_model()
+antispoof_model = FasnetOnnx()
+face_q_model = OnnxFaceQualityModel()
 
 
 
@@ -93,6 +93,7 @@ def infer_camera(config = None,
         
         face , center_point, prob = detect_face_and_nose(frame)
 
+
         
         
         if face is None or prob is None or center_point is None:
@@ -105,6 +106,8 @@ def infer_camera(config = None,
         center_x, center_y = map(int, center_point)
         height, width, _ = frame.shape
         x1, y1, x2, y2 = map(int, face)
+
+        print(x1, y1, x2, y2)
         draw_camera_focus_box(frame, width, height)
 
         if prob > bbox_threshold:
@@ -157,7 +160,7 @@ def infer_camera(config = None,
                         is_real, score = antispoof_model.analyze(origin_frame, map(int, face))
                         print('---->',is_real, score)
                         is_reals.append((is_real, score))
-                        valid_images.append(origin_frame)
+                        valid_images.append(origin_frame[y1:y2, x1:x2])
 
                 else:
                     if previous_message != 2 and current_time - last_sound_time > sound_delay:
@@ -236,49 +239,22 @@ def check_validation(
     
     predict_class = []
 
-    # Process all images in batch with MTCNN
-    try:
-        batch_faces = mtcnn(valid_images)
-        print("Finish MTCNN")
-    except Exception as e:
-        print(f"Error in MTCNN: {e}")
-        # Fallback to detect_face_and_nose for all images
-        batch_faces = []
-        for img in valid_images:
-            face, _, _ = detect_face_and_nose(img)
-            if face is not None:
-                x1, y1, x2, y2 = map(int, face)
-                batch_faces.append(img[y1:y2, x1:x2])
-            else:
-                batch_faces.append(None)
-    
-    # Process faces and get embeddings
     processed_faces = []
 
-    for i, (raw_image, face) in enumerate(zip(valid_images, batch_faces)):
-        if face is None:
-            # If MTCNN fails, try detect_face_and_nose
-            face, _, prob = detect_face_and_nose(raw_image)
-            if face is not None:
-                x1, y1, x2, y2 = map(int, face)
-                image = raw_image[y1:y2, x1:x2]
-            else:
-                image = raw_image
-        else:
-            image = face
-            
-        # Check anti-spoof if enabled
+
+    print("START TESTING ......................................")
+    for i, face in enumerate(valid_images):
+        print(type(face))
+        print(face.shape)
         if is_anti_spoof:
             if not input['is_reals'][i][0] and input['is_reals'][i][1] > anti_spoof_threshold:
                 continue
-                
-        processed_faces.append(image)
+        processed_faces.append(face)
     
     # Get embeddings for all processed faces in batch
     if processed_faces:
         pred_embeds = getEmbedding(arcface_model, processed_faces)
-        
-        # Find closest person for each embedding
+   
         for pred_embed in pred_embeds:
             result = find_closest_person(
                 pred_embed, 

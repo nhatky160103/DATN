@@ -11,7 +11,11 @@ from .cloudinary import  (upload_folder_to_cloudinary,
                           cloudinary_new_bucket,
                           delete_bucket_from_cloudinary)
 
-cred = credentials.Certificate("database/ServiceAccountKey.json")
+cred_path = os.getenv("FIREBASE_CRED_PATH", "database/ServiceAccountKey.json")
+
+# Load credentials
+cred = credentials.Certificate(cred_path)
+
 firebase_admin.initialize_app(cred, {
     'databaseURL': "https://facerecognition-905ff-default-rtdb.firebaseio.com/"
 })

@@ -7,6 +7,7 @@
 # Virtual environments
 .venv/
 .venv2/
+.venv3/
 env/
 venv/
 local_embeddings/
@@ -43,6 +44,7 @@ Thumbs.db
 *.tar
 *.tar.gz
 *.pb
+*.onnx
 # Build outputs
 build/
 dist/

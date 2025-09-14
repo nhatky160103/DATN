@@ -1,11 +1,9 @@
 from flask import Flask, render_template, request, jsonify, send_file, session, Response
 import os, cv2, yaml, shutil, queue
 from werkzeug.utils import secure_filename
-import time
 from datetime import datetime, timedelta
 import io
 import numpy as np
-from PIL import Image
 
 from infer.get_embedding import EmbeddingManager
 from infer.infer_camera import infer_camera, check_validation
@@ -20,7 +18,7 @@ from database.firebase import (get_all_bucket_names,
                                get_logo_url,
                                get_employee_count)
 
-from models.lightqnet.tf_face_quality_model import TfFaceQualityModel
+from models.lightqnet.tf_face_quality_model_onnx import OnnxFaceQualityModel
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -41,7 +39,7 @@ app.config['index2class'] = {}
 app.config['config'] = {}
 
 # Initialize face quality model
-face_quality_model = TfFaceQualityModel()
+face_quality_model = OnnxFaceQualityModel()
 
 def get_default_config():
     with open('config.yaml', 'r') as file:

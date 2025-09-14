@@ -1,8 +1,6 @@
-import torch
 import numpy as np
 import pickle
 from PIL import Image
-from tqdm import tqdm
 from io import BytesIO
 import cloudinary.uploader
 import requests
@@ -13,7 +11,7 @@ from glob import glob
 
 
 from .infer_image import  transform_image
-from .utils import get_recogn_model, device, mtcnn
+from .utils import load_onnx_model
 from database.firebase import get_data, delete_person, add_person, get_person_ids_from_bucket
 from .blazeFace import detect_face_and_nose
 
@@ -128,13 +126,14 @@ class EmbeddingManager:
 
         print(f"➕ Adding new employee: {person_id}")
 
-        embeddings, image2class, index2class = self.load(load_local= True)
+        embeddings, image2class, index2class = self.load(load_local=True)
         if embeddings is None:
-            embeddings = np.zeros((0, 512))
+            embeddings = np.zeros((0, 512), dtype=np.float32)
             image2class = {}
             index2class = {}
 
-        recognition_model = get_recogn_model()
+        # Load ArcFace ONNX model
+        recognition_sess = load_onnx_model()  # trả về ort.InferenceSession
 
         # ---------- Bước 1: Lấy ảnh ----------
         images = []
@@ -164,7 +163,6 @@ class EmbeddingManager:
                 except Exception as e:
                     print(f"❌ Error loading image from URL {url}: {e}")
 
-        # Nếu không có ảnh thì dừng
         if not images:
             print(f"❌ No valid images loaded for {person_id}")
             return
@@ -172,7 +170,7 @@ class EmbeddingManager:
         # ---------- Bước 2: Xử lý ảnh ----------
         aligned = []
         image_index = len(image2class)
-        
+
         # Tìm class_index mới bằng cách tìm khoảng trống trong index2class
         used_indices = set(index2class.keys())
         class_index = 0
@@ -180,34 +178,32 @@ class EmbeddingManager:
             class_index += 1
 
         for image in images:
-            try:
-                x_aligned = mtcnn(image)
-                if x_aligned is not None:
-                    x_aligned = transform_image(x_aligned)
-                else:
-                    image = np.array(image)
-                    face, _, prob = detect_face_and_nose(image)
-                    if face is not None and prob > 0.7:
-                        x1, y1, x2, y2 = map(int, face)
-                        face_crop = image.crop((x1, y1, x2, y2))
-                        x_aligned = transform_image(face_crop)
-                    else:
-                        x_aligned = transform_image(image)
+            x_aligned = None
+            image_np = np.array(image)
+            face, _, prob = detect_face_and_nose(image_np)
 
-                aligned.append(x_aligned)
-                image2class[image_index] = class_index
-                image_index += 1
-            except Exception as e:
-                print(f"❌ Error processing image: {e}")
+            if face is not None and prob > 0.6:
+                x1, y1, x2, y2 = map(int, face)
+                face_crop = image_np[y1:y2, x1:x2]
+                x_aligned = transform_image(face_crop)
+            else:
+                x_aligned = transform_image(image_np)
+
+            aligned.append(x_aligned)
+            image2class[image_index] = class_index
+            image_index += 1
+                
 
         if not aligned:
             print(f"❌ No valid images processed for {person_id}")
             return
 
         # ---------- Bước 3: Tính embedding ----------
-        batch = torch.cat(aligned, dim=0).to(device)
-        with torch.no_grad():
-            new_embeddings = recognition_model(batch).detach().cpu().numpy()
+        batch = np.vstack(aligned).astype(np.float32)   # [N,3,112,112]
+        input_name = recognition_sess.get_inputs()[0].name
+        output_name = recognition_sess.get_outputs()[0].name
+
+        new_embeddings = recognition_sess.run([output_name], {input_name: batch})[0]
 
         embeddings = np.vstack([embeddings, new_embeddings])
         index2class[class_index] = person_id
