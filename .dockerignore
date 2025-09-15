@@ -6,8 +6,6 @@
 
 # Virtual environments
 .venv/
-.venv2/
-.venv3/
 env/
 venv/
 local_embeddings/
@@ -15,8 +13,8 @@ local_embeddings/
 
 *.env
 .env
-serviceAccountKey.json
-database/serviceAccountKey.json
+ServiceAccountKey.json
+database/ServiceAccountKey.json
 dummy_run.sh
 
 # Jupyter notebooks
@@ -55,6 +53,3 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
-# Models (chỉ giữ thư mục, không copy weights cũ)
-app/models/*
-!app/models/.gitkeep

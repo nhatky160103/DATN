@@ -1,12 +1,15 @@
-from flask import Flask, render_template, request, jsonify, send_file, session, Response
-import os, cv2, yaml, shutil, queue
+from flask import Flask, render_template, request, jsonify, send_file, session
+import os, cv2, yaml, shutil
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import io
 import numpy as np
+from infer.blazeFace import detect_face_and_nose
+from models.Anti_spoof.FasNet_onnx import FasnetOnnx
+
 
 from infer.get_embedding import EmbeddingManager
-from infer.infer_camera import infer_camera, check_validation
+from infer.infer_camera import check_validation
 from database.timeKeeping import (create_daily_timekeeping,
                                    export_to_excel, 
                                    process_check_in_out)
@@ -178,39 +181,6 @@ def save_config():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-camera_data = queue.Queue()
-
-@app.route('/video_feed')
-def video_feed():
-    print('all keys:',  app.config['config'].keys())
-    try:
-        bucket_name = get_or_set_default_bucket()
-        return Response(infer_camera(config = app.config['config'][bucket_name], 
-        result_queue=camera_data), mimetype='multipart/x-mixed-replace; boundary=frame')
-    except Exception as e:
-        print(f"Error streaming video: {e}")
-        return "Error streaming video"
-
-
-@app.route('/get_results', methods=['GET'])
-def get_results():
-
-    bucket_name = get_or_set_default_bucket()
-
-    embeddings = app.config['embeddings'].get(bucket_name)
-    image2class = app.config['image2class'].get(bucket_name)
-    index2class = app.config['index2class'].get(bucket_name)
-
-    if not camera_data.empty():
-        input_data = camera_data.get()
-        employee_id = check_validation(input_data, embeddings, image2class, index2class, app.config['config'][bucket_name])
-        process_check_in_out(bucket_name, employee_id)
-        return jsonify({
-            'employee_id': employee_id,
-            'time': datetime.now().timestamp(),
-        })
-    else:
-        return jsonify({"status": "no_results", "message": "No results available yet"})
 
 
 
@@ -346,6 +316,122 @@ def check_face_quality():
             'error': str(e),
             'success': False
         }), 500
+
+
+valid_images_buffer = []
+is_reals_buffer = []
+
+@app.route('/infer_camera_upload', methods=['POST'])
+def infer_camera_upload():
+    global valid_images_buffer, is_reals_buffer
+    try:
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'message': 'No image uploaded'}), 400
+
+        # đọc ảnh
+        image_file = request.files['image']
+        image_bytes = image_file.read()
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            return jsonify({'success': False, 'message': 'Invalid image'}), 400
+
+        # lấy config
+        bucket_name = get_or_set_default_bucket()
+        embeddings = app.config['embeddings'].get(bucket_name)
+        image2class = app.config['image2class'].get(bucket_name)
+        index2class = app.config['index2class'].get(bucket_name)
+        config = app.config['config'][bucket_name]
+
+        face_q_model = OnnxFaceQualityModel()
+        antispoof_model = FasnetOnnx()
+
+        guide_base = '/static/audio/'
+        min_face_area = config['infer_video']['min_face_area']
+        qscore_threshold = config['infer_video']['qscore_threshold']
+        required_images = config['infer_video'].get('required_images', 3)
+
+        # detect face
+        face, center_point, prob = detect_face_and_nose(img)
+        h, w = img.shape[:2]
+
+        x1, y1, x2, y2 = map(int, face)
+        area = (x2 - x1) * (y2 - y1)
+        center_x, center_y = map(int, center_point)
+
+        # check diện tích
+        if area < min_face_area * h * w:
+            return jsonify({
+                'employee_id': None,
+                'time': datetime.now().timestamp(),
+                'audio_guide': guide_base + 'closer.mp3',
+                'valid': False,
+                'enough_images': False
+            })
+
+        # check vị trí
+        if not (w * 0.2 < center_x < w * 0.8 and h * 0.2 < center_y < h * 0.8):
+            return jsonify({
+                'employee_id': None,
+                'time': datetime.now().timestamp(),
+                'audio_guide': guide_base + 'guide_centerface.mp3',
+                'valid': False,
+                'enough_images': False
+            })
+
+        # crop + check quality
+        crop_face = img[y1:y2, x1:x2]
+        quality_score = face_q_model.inference(crop_face)
+        if quality_score < qscore_threshold:
+            return jsonify({
+                'employee_id': None,
+                'time': datetime.now().timestamp(),
+                'audio_guide': guide_base + 'guide_centerface.mp3',
+                'valid': False,
+                'enough_images': False
+            })
+
+
+        is_real, score = antispoof_model.analyze(img, [x1, y1, x2, y2])
+        valid_images_buffer.append(crop_face)
+        is_reals_buffer.append((is_real, score))
+
+        # chưa đủ ảnh
+        if len(valid_images_buffer) < required_images:
+            return jsonify({
+                'employee_id': None,
+                'time': datetime.now().timestamp(),
+                'audio_guide': guide_base + 'guide_keepface.mp3',
+                'valid': True,
+                'enough_images': False
+            })
+
+        # đủ ảnh -> gọi check_validation
+        input_data = {
+            'valid_images': valid_images_buffer,
+            'is_reals': is_reals_buffer
+        }
+        employee_id, audio_guide = check_validation(
+            input_data, embeddings, image2class, index2class, config
+        )
+        process_check_in_out(bucket_name, employee_id)
+        # reset buffer
+        valid_images_buffer = []
+        is_reals_buffer = []
+        
+        return jsonify({
+            'employee_id': employee_id,
+            'time': datetime.now().timestamp(),
+            'audio_guide': audio_guide,
+            'valid': True,
+            'enough_images': True
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()  # in ra console server
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 if __name__ == '__main__':
     import logging

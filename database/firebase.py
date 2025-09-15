@@ -11,7 +11,9 @@ from .cloudinary import  (upload_folder_to_cloudinary,
                           cloudinary_new_bucket,
                           delete_bucket_from_cloudinary)
 
-cred_path = os.getenv("FIREBASE_CRED_PATH", "database/ServiceAccountKey.json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
+service_account_path = os.path.join(BASE_DIR, "ServiceAccountKey.json")
+cred_path = os.getenv("FIREBASE_CRED_PATH", service_account_path)
 
 # Load credentials
 cred = credentials.Certificate(cred_path)

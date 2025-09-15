@@ -60,33 +60,5 @@ def detect_face_and_nose(frame):
 
 
 
-import cv2
-
-if __name__ == "__main__":
-    # Đọc ảnh test
-    img_path = "models/test.jpg"  # thay bằng đường dẫn ảnh của bạn
-    frame = cv2.imread(img_path)
-
-    bbox, nose, prob = detect_face_and_nose(frame)
-
-    if bbox is not None:
-        x1, y1, x2, y2 = bbox
-        nose_x, nose_y = nose
-
-        # Vẽ bounding box
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        # Vẽ mũi
-        cv2.circle(frame, (nose_x, nose_y), 5, (0, 0, 255), -1)
-        # Vẽ độ tin cậy
-        cv2.putText(frame, f"{prob:.2f}", (x1, y1 - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        print(bbox)
-        print(f"✅ Face detected with prob={prob:.2f}, Nose at {nose}")
-    else:
-        print("❌ No face detected.")
-    
-    cv2.imshow("Face + Nose Detection", frame)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 
