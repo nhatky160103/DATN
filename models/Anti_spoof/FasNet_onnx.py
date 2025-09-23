@@ -102,12 +102,3 @@ def crop(org_img, bbox, scale, out_w, out_h):
     dst_img = cv2.resize(img, (out_w, out_h))
     return dst_img
 
-
-# -----------------------------
-if __name__ == "__main__":
-    import os
-    img = cv2.imread(os.path.join('models', "test.jpg"))
-    model = FasnetOnnx()
-    box = [0, 0, img.shape[1], img.shape[0]]
-    result = model.analyze(img, box)
-    print(result)

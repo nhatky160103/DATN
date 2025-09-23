@@ -7,6 +7,7 @@ __pycache__/
 *.swp
 .env
 database/ServiceAccountKey.json
+database/ServiceAccountKey.b64
 
 results/
 weights/

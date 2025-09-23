@@ -1,7 +1,6 @@
-import os
+import os, json, base64
 import firebase_admin
 from firebase_admin import credentials, db
-import time
 from datetime import datetime
 import shutil
 
@@ -11,12 +10,18 @@ from .cloudinary import  (upload_folder_to_cloudinary,
                           cloudinary_new_bucket,
                           delete_bucket_from_cloudinary)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
-service_account_path = os.path.join(BASE_DIR, "ServiceAccountKey.json")
-cred_path = os.getenv("FIREBASE_CRED_PATH", service_account_path)
-
-# Load credentials
-cred = credentials.Certificate(cred_path)
+cred_b64 = os.getenv("FIREBASE_CRED_JSON")
+if cred_b64:
+    print("use json from env")
+    cred_json = base64.b64decode(cred_b64).decode("utf-8")
+    cred_dict = json.loads(cred_json)
+    cred = credentials.Certificate(cred_dict)
+else:
+    print("use json from file")
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
+    service_account_path = os.path.join(BASE_DIR, "ServiceAccountKey.json")
+    cred_path = os.getenv("FIREBASE_CRED_PATH", service_account_path)
+    cred = credentials.Certificate(cred_path)
 
 firebase_admin.initialize_app(cred, {
     'databaseURL': "https://facerecognition-905ff-default-rtdb.firebaseio.com/"

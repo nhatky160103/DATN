@@ -19,11 +19,17 @@ function showToast(message, isError = false) {
 }
 
 let greetingPlayed = false;
+let greetingAlreadyTriggered = false;
+
 
 function playAudioGuide(audioUrl, forcePlay = false) {
     if (!audioUrl) return;
 
-    if (forcePlay && greetingPlayed) return; // chặn phát lại greeting
+    // Chặn greeting.mp3 chỉ phát 1 lần
+    if (forcePlay) {
+        if (greetingAlreadyTriggered) return; 
+        greetingAlreadyTriggered = true;
+    }
 
     const now = Date.now();
     if (!forcePlay && now - lastAudioTime < audioDelay) return;
@@ -37,12 +43,12 @@ function playAudioGuide(audioUrl, forcePlay = false) {
     currentAudio = new Audio(audioUrl);
     currentAudio.play().catch(e => console.log('Audio play error:', e));
 
-    if (forcePlay) greetingPlayed = true; // đánh dấu ngay
     currentAudio.onended = () => {
         if (forcePlay) audioPlayedForRecognition = true;
         currentAudio = null;
     };
 }
+
 
 function showRecognitionResult(employee_id, time) {
     const nameSpan = document.getElementById("name");
@@ -197,6 +203,7 @@ function closeCamera() {
         currentAudio = null;
     }
     greetingPlayed = false;
+    greetingAlreadyTriggered = false;
 }
 
 // --- Bucket dropdown và modal tạo bucket ---

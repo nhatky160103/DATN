@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY . .
 
-ENV GDRIVE_ID=1WPbJ3N2PEWTexsqqvX_GOd6-1qUILra4
+ENV GDRIVE_ID=1NoJp9qRf0fRRAkCJw0ywFN3A81I88A42
 
 
 RUN gdown --id $GDRIVE_ID -O /app/models/weights.zip && \
@@ -26,4 +26,3 @@ RUN gdown --id $GDRIVE_ID -O /app/models/weights.zip && \
 
 # Chạy Gunicorn khi container start
 CMD ["sh", "-c", "gunicorn -b 0.0.0.0:$PORT interface.app:app --workers 1 --timeout 120"]
-

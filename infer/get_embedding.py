@@ -13,7 +13,7 @@ from glob import glob
 from .infer_image import  transform_image
 from .utils import load_onnx_model
 from database.firebase import get_data, delete_person, add_person, get_person_ids_from_bucket
-from .blazeFace import detect_face_and_nose
+from models.detection.detect import detect_face_and_nose
 
 
 

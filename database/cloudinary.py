@@ -196,18 +196,15 @@ if __name__ == "__main__":
     import cloudinary
     import cloudinary.api
 
-    prefix = 'Hust_10/'
+    prefix = 'Hust_100_employee/'
 
     # Lấy danh sách resource theo prefix
     resources = cloudinary.api.resources(type="upload", prefix=prefix, max_results=100)
-
     if resources['resources']:
         print('tRUE')
         public_ids = []
 
         for r in resources['resources']:
             print(r['public_id'], "backup:", r.get('backup'), "placeholder:", r.get('placeholder'))
-            
 
-    
     

@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import io
 import numpy as np
-from infer.blazeFace import detect_face_and_nose
+from models.detection.detect import detect_face_and_nose
 from models.Anti_spoof.FasNet_onnx import FasnetOnnx
 
 
@@ -43,6 +43,8 @@ app.config['config'] = {}
 
 # Initialize face quality model
 face_quality_model = OnnxFaceQualityModel()
+antispoof_model = FasnetOnnx()
+
 
 def get_default_config():
     with open('config.yaml', 'r') as file:
@@ -55,7 +57,7 @@ for bucket in get_all_bucket_names():
     try:
         print(f"🔍 Loading local embeddings for bucket: {bucket}")
         manager = EmbeddingManager(bucket_name=bucket)
-        embeddings, image2class, index2class = manager.load(load_local=True)
+        embeddings, image2class, index2class = manager.load(load_local=False)
 
         app.config['embeddings'][bucket] = embeddings
         app.config['image2class'][bucket] = image2class
@@ -321,6 +323,7 @@ def check_face_quality():
 valid_images_buffer = []
 is_reals_buffer = []
 
+
 @app.route('/infer_camera_upload', methods=['POST'])
 def infer_camera_upload():
     global valid_images_buffer, is_reals_buffer
@@ -342,9 +345,6 @@ def infer_camera_upload():
         image2class = app.config['image2class'].get(bucket_name)
         index2class = app.config['index2class'].get(bucket_name)
         config = app.config['config'][bucket_name]
-
-        face_q_model = OnnxFaceQualityModel()
-        antispoof_model = FasnetOnnx()
 
         guide_base = '/static/audio/'
         min_face_area = config['infer_video']['min_face_area']
@@ -381,7 +381,7 @@ def infer_camera_upload():
 
         # crop + check quality
         crop_face = img[y1:y2, x1:x2]
-        quality_score = face_q_model.inference(crop_face)
+        quality_score = face_quality_model.inference(crop_face)
         if quality_score < qscore_threshold:
             return jsonify({
                 'employee_id': None,
@@ -393,6 +393,11 @@ def infer_camera_upload():
 
 
         is_real, score = antispoof_model.analyze(img, [x1, y1, x2, y2])
+
+        if len(valid_images_buffer) >= required_images:
+            valid_images_buffer = []
+            is_reals_buffer = []
+            
         valid_images_buffer.append(crop_face)
         is_reals_buffer.append((is_real, score))
 

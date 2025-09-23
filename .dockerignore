@@ -15,6 +15,7 @@ local_embeddings/
 .env
 ServiceAccountKey.json
 database/ServiceAccountKey.json
+database/ServiceAccountKey.b64
 dummy_run.sh
 
 # Jupyter notebooks
