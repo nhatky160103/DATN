@@ -5,8 +5,6 @@ let cameraState = {
 };
 
 let currentAudio = null;
-let lastAudioTime = 0;
-const audioDelay = 2000; // ms
 let audioPlayedForRecognition = false; // flag audio greeting đã play
 
 function showToast(message, isError = false) {
@@ -21,34 +19,10 @@ function showToast(message, isError = false) {
 let greetingPlayed = false;
 let greetingAlreadyTriggered = false;
 
-
-function playAudioGuide(audioUrl, forcePlay = false) {
-    if (!audioUrl) return;
-
-    // Chặn greeting.mp3 chỉ phát 1 lần
-    if (forcePlay) {
-        if (greetingAlreadyTriggered) return; 
-        greetingAlreadyTriggered = true;
-    }
-
-    const now = Date.now();
-    if (!forcePlay && now - lastAudioTime < audioDelay) return;
-    lastAudioTime = now;
-
-    if (currentAudio && !forcePlay) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
-
+function playAudioGuide(audioUrl) {
     currentAudio = new Audio(audioUrl);
     currentAudio.play().catch(e => console.log('Audio play error:', e));
-
-    currentAudio.onended = () => {
-        if (forcePlay) audioPlayedForRecognition = true;
-        currentAudio = null;
-    };
 }
-
 
 function showRecognitionResult(employee_id, time) {
     const nameSpan = document.getElementById("name");
@@ -60,64 +34,13 @@ function showRecognitionResult(employee_id, time) {
     setTimeout(() => {
         if (nameSpan) nameSpan.textContent = "--";
         if (timeSpan) timeSpan.textContent = "--";
-    }, 3000);
+    }, 5000);
 }
 
-// Gửi frame lên backend
-async function sendFrameForRecognition(blob) {
-    if (!blob) return null;
-
-    const formData = new FormData();
-    formData.append('image', blob, 'frame.jpg');
-
-    try {
-        const response = await fetch('/infer_camera_upload', { method: 'POST', body: formData });
-        const result = await response.json();
-
-        if (result?.audio_guide) {
-            const forcePlay = result.enough_images === true; // ưu tiên audio greeting
-            if (currentAudio?.src !== result.audio_guide || forcePlay) {
-                playAudioGuide(result.audio_guide, forcePlay);
-            }
-        }
-
-        if (result?.enough_images && isCameraOpen) {
-            showRecognitionResult(result.employee_id, result.time);
-
-            // Đánh dấu audio greeting sẽ được play, disable interval capture ngay
-            if (cameraState.captureInterval) {
-                clearInterval(cameraState.captureInterval);
-                cameraState.captureInterval = null;
-            }
-
-            // Chờ audio greeting play xong mới đóng camera
-            const checkAudioEnd = setInterval(() => {
-                if (audioPlayedForRecognition) {
-                    clearInterval(checkAudioEnd);
-                    closeCamera();
-                    audioPlayedForRecognition = false; // reset flag
-                }
-            }, 100);
-        }
-
-        return result;
-    } catch (err) {
-        console.error('sendFrameForRecognition error', err);
-        showToast('❌ Recognition error!', true);
-        return null;
-    }
-}
-
-// Mở / đóng camera
 function toggleCamera() {
     const cameraModal = document.getElementById("cameraModal");
     const spinner = document.getElementById("loadingSpinner");
     const video = document.getElementById("cameraVideo");
-
-    if (!cameraModal || !video) {
-        showToast('❌ Camera elements not found', true);
-        return;
-    }
 
     if (isCameraOpen) {
         closeCamera();
@@ -129,9 +52,6 @@ function toggleCamera() {
     spinner.style.display = "block";
     video.style.display = "block";
 
-    cameraState.captureInterval = null;
-    cameraState.stream = null;
-
     navigator.mediaDevices.getUserMedia({ video: true })
         .then(mediaStream => {
             cameraState.stream = mediaStream;
@@ -140,21 +60,27 @@ function toggleCamera() {
             spinner.style.display = "none";
             isCameraOpen = true;
 
-            const CAPTURE_INTERVAL_MS = 300;
-            cameraState.captureInterval = setInterval(() => {
-                if (!video.videoWidth || !video.videoHeight) return;
+            let capturedImages = [];
+            const CAPTURE_COUNT = 2;
 
+            const captureInterval = setInterval(() => {
+                if (!video.videoWidth || !video.videoHeight) return;
                 const canvas = document.createElement('canvas');
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 const ctx = canvas.getContext('2d');
-                if (!ctx) return;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                 canvas.toBlob(blob => {
-                    if (blob) sendFrameForRecognition(blob);
+                    if (blob) {
+                        capturedImages.push(blob);
+                        if (capturedImages.length === CAPTURE_COUNT) {
+                            clearInterval(captureInterval);
+                            sendImagesForRecognition(capturedImages);
+                        }
+                    }
                 }, 'image/jpeg');
-            }, CAPTURE_INTERVAL_MS);
+            }, 200); // chụp mỗi 0.5s
         })
         .catch(err => {
             console.error('getUserMedia error', err);
@@ -162,7 +88,29 @@ function toggleCamera() {
             closeCamera();
         });
 }
+async function sendImagesForRecognition(images) {
+    const formData = new FormData();
+    images.forEach((img, idx) => {
+        formData.append('images', img, `frame_${idx}.jpg`);
+    });
 
+    try {
+        const response = await fetch('/infer_camera_upload', { method: 'POST', body: formData });
+        const result = await response.json();
+
+        showRecognitionResult(result.employee_id, result.time);
+       
+        if (result?.audio_guide) {
+            playAudioGuide(result.audio_guide);
+        }
+    } catch (err) {
+        console.error('sendImagesForRecognition error', err);
+        showToast('❌ Recognition error!', true);
+    } finally {
+        // đóng camera ngay lập tức sau khi có kết quả
+        closeCamera();
+    }
+}
 function closeCamera() {
     const cameraModal = document.getElementById("cameraModal");
     const video = document.getElementById("cameraVideo");
@@ -197,14 +145,14 @@ function closeCamera() {
 
     isCameraOpen = false;
 
-    // Chỉ pause audio bình thường, không dừng audio greeting ưu tiên
-    if (currentAudio && !audioPlayedForRecognition) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
+    // ❌ KHÔNG dừng audio ở đây nữa
+    // để audio có thể phát hết kể cả khi camera bị đóng
+
     greetingPlayed = false;
     greetingAlreadyTriggered = false;
 }
+
+
 
 // --- Bucket dropdown và modal tạo bucket ---
 document.addEventListener('DOMContentLoaded', () => {

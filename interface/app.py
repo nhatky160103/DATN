@@ -326,117 +326,68 @@ is_reals_buffer = []
 
 @app.route('/infer_camera_upload', methods=['POST'])
 def infer_camera_upload():
-    global valid_images_buffer, is_reals_buffer
     try:
-        if 'image' not in request.files:
-            return jsonify({'success': False, 'message': 'No image uploaded'}), 400
+        if 'images' not in request.files:
+            return jsonify({'success': False, 'message': 'No images uploaded'}), 400
 
-        # đọc ảnh
-        image_file = request.files['image']
-        image_bytes = image_file.read()
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if img is None:
-            return jsonify({'success': False, 'message': 'Invalid image'}), 400
-
-        # lấy config
+        # Lấy config
         bucket_name = get_or_set_default_bucket()
         embeddings = app.config['embeddings'].get(bucket_name)
         image2class = app.config['image2class'].get(bucket_name)
         index2class = app.config['index2class'].get(bucket_name)
         config = app.config['config'][bucket_name]
 
-        guide_base = '/static/audio/'
-        min_face_area = config['infer_video']['min_face_area']
-        qscore_threshold = config['infer_video']['qscore_threshold']
-        required_images = config['infer_video'].get('required_images', 3)
+        images = request.files.getlist('images')
+        valid_faces, reals = [], []
 
-        # detect face
-        face, center_point, prob = detect_face_and_nose(img)
-        h, w = img.shape[:2]
+        for image_file in images:
+            image_bytes = image_file.read()
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if img is None:
+                continue
 
-        x1, y1, x2, y2 = map(int, face)
-        area = (x2 - x1) * (y2 - y1)
-        center_x, center_y = map(int, center_point)
+            face, center_point, prob = detect_face_and_nose(img)
+            x1, y1, x2, y2 = map(int, face)
+            crop_face = img[y1:y2, x1:x2]
 
-        # check diện tích
-        if area < min_face_area * h * w:
+            # quality
+            # qscore = face_quality_model.inference(crop_face)
+            # if qscore < config['infer_video']['qscore_threshold']:
+            #     continue
+
+            # antispoof
+            is_real, score = antispoof_model.analyze(img, [x1, y1, x2, y2])
+
+            valid_faces.append(crop_face)
+            reals.append((is_real, score))
+
+        if not valid_faces:
             return jsonify({
-                'employee_id': None,
+                'employee_id': "UNKNOWN",
                 'time': datetime.now().timestamp(),
-                'audio_guide': guide_base + 'closer.mp3',
                 'valid': False,
-                'enough_images': False
+                'audio_guide': '/static/audio/retry.mp3'   # thêm audio cho client phát
             })
 
-        # check vị trí
-        if not (w * 0.2 < center_x < w * 0.8 and h * 0.2 < center_y < h * 0.8):
-            return jsonify({
-                'employee_id': None,
-                'time': datetime.now().timestamp(),
-                'audio_guide': guide_base + 'guide_centerface.mp3',
-                'valid': False,
-                'enough_images': False
-            })
-
-        # crop + check quality
-        crop_face = img[y1:y2, x1:x2]
-        quality_score = face_quality_model.inference(crop_face)
-        if quality_score < qscore_threshold:
-            return jsonify({
-                'employee_id': None,
-                'time': datetime.now().timestamp(),
-                'audio_guide': guide_base + 'guide_centerface.mp3',
-                'valid': False,
-                'enough_images': False
-            })
-
-
-        is_real, score = antispoof_model.analyze(img, [x1, y1, x2, y2])
-
-        if len(valid_images_buffer) >= required_images:
-            valid_images_buffer = []
-            is_reals_buffer = []
-            
-        valid_images_buffer.append(crop_face)
-        is_reals_buffer.append((is_real, score))
-
-        # chưa đủ ảnh
-        if len(valid_images_buffer) < required_images:
-            return jsonify({
-                'employee_id': None,
-                'time': datetime.now().timestamp(),
-                'audio_guide': guide_base + 'guide_keepface.mp3',
-                'valid': True,
-                'enough_images': False
-            })
-
-        # đủ ảnh -> gọi check_validation
-        input_data = {
-            'valid_images': valid_images_buffer,
-            'is_reals': is_reals_buffer
-        }
+        # predict từ nhiều ảnh crop
+        input_data = {'valid_images': valid_faces, 'is_reals': reals}
         employee_id, audio_guide = check_validation(
             input_data, embeddings, image2class, index2class, config
         )
         process_check_in_out(bucket_name, employee_id)
-        # reset buffer
-        valid_images_buffer = []
-        is_reals_buffer = []
-        
+
         return jsonify({
             'employee_id': employee_id,
             'time': datetime.now().timestamp(),
-            'audio_guide': audio_guide,
-            'valid': True,
-            'enough_images': True
+            'valid': True if employee_id != 'UNKNOWN' else False,
+            'audio_guide': audio_guide   # trả về cho client
         })
 
     except Exception as e:
         import traceback
-        traceback.print_exc()  # in ra console server
+        traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
-
 
 if __name__ == '__main__':
     import logging
