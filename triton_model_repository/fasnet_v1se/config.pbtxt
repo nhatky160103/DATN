@@ -1,0 +1,22 @@
+name: "fasnet_v1se"
+platform: "onnxruntime_onnx"
+max_batch_size: 16
+input [
+  {
+    name: "input"
+    data_type: TYPE_FP32
+    dims: [3, 80, 80]
+  }
+]
+output [
+  {
+    name: "logits"
+    data_type: TYPE_FP32
+    dims: [3]
+  }
+]
+instance_group [
+  {
+    kind: KIND_CPU
+  }
+]

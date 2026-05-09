@@ -1,0 +1,23 @@
+name: "arcface"
+platform: "onnxruntime_onnx"
+max_batch_size: 16
+input [
+  {
+    name: "input"
+    data_type: TYPE_FP32
+    dims: [3, 112, 112]
+  }
+]
+output [
+  {
+    name: "embedding"
+    data_type: TYPE_FP32
+    dims: [512]
+  }
+]
+instance_group [
+  {
+    kind: KIND_CPU
+  }
+]
+

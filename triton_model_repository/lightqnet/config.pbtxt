@@ -1,0 +1,22 @@
+name: "lightqnet"
+platform: "tensorflow_graphdef"
+max_batch_size: 16
+input [
+  {
+    name: "input"
+    data_type: TYPE_FP32
+    dims: [96, 96, 3]
+  }
+]
+output [
+  {
+    name: "confidence_st"
+    data_type: TYPE_FP32
+    dims: [1]
+  }
+]
+instance_group [
+  {
+    kind: KIND_CPU
+  }
+]

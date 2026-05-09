@@ -1,0 +1,13 @@
+.git
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+notebooks/
+eval_system/
+local_embeddings/
+triton_model_repository/*/1/model.onnx
+triton_model_repository/*/1/model.graphdef
+database/ServiceAccountKey.json
+.env

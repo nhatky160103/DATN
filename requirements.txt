@@ -1,0 +1,22 @@
+faiss-cpu
+firebase-admin
+flask
+gunicorn
+mediapipe
+numpy
+onnx
+onnxruntime
+onnxsim
+opencv-python-headless
+pillow
+psutil
+python-dotenv
+pyyaml
+redis
+requests
+scikit-learn
+tensorflow==2.15.1; python_version < "3.12"
+torch
+torchvision
+tqdm
+tritonclient[http]

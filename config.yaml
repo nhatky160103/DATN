@@ -8,11 +8,47 @@ infer_video:
   anti_spoof_threshold: 0.9
   qscore_threshold: 0.4
 
-identity_person:
+vector_search:
   l2_threshold: 27.5
   cosine_threshold: 0.78
   distance_mode: 'cosine'
   qscore_collect_threshold: 0.5
   image_per_class: 2
-  
 
+detection:
+  # python_mtcnn: worker runs optimized PyTorch MTCNN.
+  # external_cpp: worker reads detections from redis.detection_queue.
+  provider: 'python_mtcnn'
+  # Keep MTCNN, but resize frames before detection to reduce CPU latency.
+  mtcnn_max_side: 640
+  mtcnn_min_face_size: 40
+  mtcnn_factor: 0.8
+  mtcnn_keep_all: true
+  torch_num_threads: 2
+
+pipeline:
+  bucket_name: 'Hust'
+
+camera:
+  # Use "0" for a local webcam or an RTSP URL for an IP camera.
+  source: 'rtsp://user:password@camera-ip:554/stream1'
+  sample_interval_ms: 500
+  jpeg_quality: 85
+  reconnect_delay_sec: 3
+
+redis:
+  url: 'redis://redis:6379/0'
+  frame_queue: 'attendance:frames'
+  detection_queue: 'attendance:detections'
+  result_queue: 'attendance:results'
+  max_queue_size: 128
+
+triton:
+  enabled: true
+  url: 'triton:8000'
+  arcface_model: 'arcface'
+  quality_model: 'lightqnet'
+  fasnet_v1_model: 'fasnet_v1se'
+  fasnet_v2_model: 'fasnet_v2'
+  timeout_sec: 5
+  
