@@ -40,6 +40,12 @@ python main.py worker
 python main.py api
 ```
 
+Smoke-test Redis Stream after starting Redis:
+
+```bash
+.venv/bin/python -B scripts/test_redis_stream.py
+```
+
 For local ONNX smoke tests:
 
 ```bash
@@ -64,7 +70,7 @@ pip install -r requirements.txt
 ## Deploy On GCP CPU VM
 
 ```bash
-docker compose -f deploy/docker-compose.cpu.yml up -d --build
+docker compose up -d --build
 curl http://localhost:5000/health
 curl http://localhost:5000/results/latest
 ```

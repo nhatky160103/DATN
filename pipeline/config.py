@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import socket
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,9 @@ class RedisConfig:
     detection_queue: str = "attendance:detections"
     result_queue: str = "attendance:results"
     max_queue_size: int = 128
+    consumer_group: str = "attendance-workers"
+    consumer_name: str = socket.gethostname()
+    stream_block_ms: int = 1000
 
 
 @dataclass(frozen=True)
@@ -103,6 +107,9 @@ def load_pipeline_config(path: str | Path = "config.yaml") -> PipelineConfig:
         detection_queue=redis.get("detection_queue", RedisConfig.detection_queue),
         result_queue=redis.get("result_queue", RedisConfig.result_queue),
         max_queue_size=int(redis.get("max_queue_size", RedisConfig.max_queue_size)),
+        consumer_group=os.getenv("REDIS_CONSUMER_GROUP", redis.get("consumer_group", RedisConfig.consumer_group)),
+        consumer_name=os.getenv("REDIS_CONSUMER_NAME", redis.get("consumer_name", RedisConfig.consumer_name)),
+        stream_block_ms=int(redis.get("stream_block_ms", RedisConfig.stream_block_ms)),
     )
     camera_cfg = CameraConfig(
         source=os.getenv("CAMERA_SOURCE", str(camera.get("source", CameraConfig.source))),

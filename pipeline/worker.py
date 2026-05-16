@@ -7,7 +7,7 @@ import numpy as np
 
 from .config import PipelineConfig, load_pipeline_config
 from .orchestrator import RecognitionOrchestrator
-from .redis_queue import RedisListQueue
+from .redis_queue import RedisStreamQueue
 from .response import ResponseWriter
 from .schemas import FrameMessage, from_json
 
@@ -15,17 +15,24 @@ from .schemas import FrameMessage, from_json
 class AttendancePipelineWorker:
     def __init__(self, cfg: PipelineConfig):
         self.cfg = cfg
-        self.frame_queue = RedisListQueue(cfg.redis.url, cfg.redis.frame_queue, cfg.redis.max_queue_size)
+        self.frame_queue = RedisStreamQueue(
+            cfg.redis.url,
+            cfg.redis.frame_queue,
+            cfg.redis.max_queue_size,
+            group=cfg.redis.consumer_group,
+            consumer=cfg.redis.consumer_name,
+        )
         self.response_writer = ResponseWriter(cfg.redis.url, cfg.redis.result_queue, cfg.redis.max_queue_size)
         self.orchestrator = RecognitionOrchestrator(cfg)
 
     def run_forever(self) -> None:
         while True:
-            payload = self.frame_queue.pop(timeout_sec=1)
-            if payload is None:
+            message = self.frame_queue.pop(timeout_ms=self.cfg.redis.stream_block_ms)
+            if message is None:
                 continue
             try:
-                self.process_frame(from_json(payload, FrameMessage))
+                self.process_frame(from_json(message.payload, FrameMessage))
+                self.frame_queue.ack(message.stream_id)
             except Exception as exc:
                 print(f"Pipeline worker failed to process frame: {exc}")
 

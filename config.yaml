@@ -45,6 +45,9 @@ redis:
   detection_queue: 'attendance:detections'
   result_queue: 'attendance:results'
   max_queue_size: 128
+  consumer_group: 'attendance-workers'
+  consumer_name: 'worker-01'
+  stream_block_ms: 1000
 
 triton:
   enabled: true

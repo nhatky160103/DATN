@@ -7,7 +7,7 @@ import uuid
 import cv2
 
 from .config import load_pipeline_config
-from .redis_queue import RedisListQueue
+from .redis_queue import RedisStreamQueue
 from .schemas import FrameMessage, to_json
 
 
@@ -17,7 +17,7 @@ def _camera_source(raw: str) -> str | int:
 
 def run_frame_reader(config_path: str = "config.yaml", camera_id: str = "camera-01") -> None:
     cfg = load_pipeline_config(config_path)
-    queue = RedisListQueue(cfg.redis.url, cfg.redis.frame_queue, cfg.redis.max_queue_size)
+    queue = RedisStreamQueue(cfg.redis.url, cfg.redis.frame_queue, cfg.redis.max_queue_size)
     interval_sec = cfg.camera.sample_interval_ms / 1000.0
 
     while True:
@@ -63,4 +63,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

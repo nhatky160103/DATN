@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from .redis_queue import RedisListQueue
+from .redis_queue import RedisStreamQueue
 from .schemas import RecognitionResult, to_json
 
 
 class ResponseWriter:
     def __init__(self, redis_url: str, result_queue: str, max_size: int = 128):
-        self.queue = RedisListQueue(redis_url, result_queue, max_size)
+        self.queue = RedisStreamQueue(redis_url, result_queue, max_size)
 
     def write(self, result: RecognitionResult, update_firebase: bool = True) -> None:
         if update_firebase:
