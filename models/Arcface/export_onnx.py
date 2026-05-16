@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 import torch
+import onnx
 
 from models.Arcface.backbones import get_model
 
@@ -26,7 +27,12 @@ def export_arcface(weights: str, network: str, output: str, opset: int = 13) -> 
         output_names=["embedding"],
         dynamic_axes={"input": {0: "batch"}, "embedding": {0: "batch"}},
         opset_version=opset,
+        do_constant_folding=True,
+        keep_initializers_as_inputs=False,
+        dynamo=False,
     )
+    onnx_model = onnx.load(str(output_path))
+    onnx.checker.check_model(onnx_model)
     print(f"Exported ArcFace ONNX to {output_path}")
 
 
