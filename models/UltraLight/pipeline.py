@@ -10,11 +10,40 @@ import numpy as np
 import onnxruntime as ort
 
 # ── Cấu hình mặc định ────────────────────────────────────────────────────────
-DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), "version-slim-320.onnx")
+DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), "weights", "version-slim-320.onnx")
 INPUT_SIZE = (320, 240)        # (width, height) — khớp với model slim-320
-CONF_THRESHOLD = 0.6           # Ngưỡng confidence để giữ detection
+CONF_THRESHOLD = 0.5           # Ngưỡng confidence để giữ detection
 IOU_THRESHOLD  = 0.4           # Ngưỡng IoU cho NMS
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def _nms(boxes: np.ndarray, scores: np.ndarray, threshold: float) -> np.ndarray:
+    """NMS trên box dạng [x1, y1, x2, y2], đồng bộ với runtime pipeline."""
+    if len(boxes) == 0:
+        return np.empty((0,), dtype=np.int64)
+
+    x1, y1, x2, y2 = boxes.T
+    areas = np.maximum(0.0, x2 - x1) * np.maximum(0.0, y2 - y1)
+    order = np.argsort(scores)[::-1]
+    keep = []
+
+    while order.size > 0:
+        i = int(order[0])
+        keep.append(i)
+        if order.size == 1:
+            break
+
+        rest = order[1:]
+        xx1 = np.maximum(x1[i], x1[rest])
+        yy1 = np.maximum(y1[i], y1[rest])
+        xx2 = np.minimum(x2[i], x2[rest])
+        yy2 = np.minimum(y2[i], y2[rest])
+        inter = np.maximum(0.0, xx2 - xx1) * np.maximum(0.0, yy2 - yy1)
+        union = areas[i] + areas[rest] - inter
+        iou = np.divide(inter, union, out=np.zeros_like(inter), where=union > 0)
+        order = rest[iou <= threshold]
+
+    return np.asarray(keep, dtype=np.int64)
 
 
 class UltraLightDetector:
@@ -90,7 +119,7 @@ class UltraLightDetector:
         bboxes = boxes[0]
 
         # Lọc theo ngưỡng confidence
-        mask   = scores > self.conf_threshold
+        mask   = scores >= self.conf_threshold
         scores = scores[mask]
         bboxes = bboxes[mask]
 
@@ -98,29 +127,18 @@ class UltraLightDetector:
             return np.empty((0, 4), dtype=np.float32), np.empty((0,), dtype=np.float32)
 
         # Chuyển normalized [x1,y1,x2,y2] → pixel [x1,y1,x2,y2]
-        x1 = (bboxes[:, 0] * orig_w).clip(0, orig_w)
-        y1 = (bboxes[:, 1] * orig_h).clip(0, orig_h)
-        x2 = (bboxes[:, 2] * orig_w).clip(0, orig_w)
-        y2 = (bboxes[:, 3] * orig_h).clip(0, orig_h)
+        x1 = (bboxes[:, 0] * orig_w).clip(0, orig_w - 1)
+        y1 = (bboxes[:, 1] * orig_h).clip(0, orig_h - 1)
+        x2 = (bboxes[:, 2] * orig_w).clip(0, orig_w - 1)
+        y2 = (bboxes[:, 3] * orig_h).clip(0, orig_h - 1)
         pixel_boxes = np.stack([x1, y1, x2, y2], axis=1).astype(np.float32)
 
-        # NMS bằng OpenCV
-        nms_boxes  = pixel_boxes.copy()
-        nms_boxes[:, 2] -= nms_boxes[:, 0]   # x2 → w
-        nms_boxes[:, 3] -= nms_boxes[:, 1]   # y2 → h
-
-        indices = cv2.dnn.NMSBoxes(
-            nms_boxes.tolist(),
-            scores.tolist(),
-            self.conf_threshold,
-            self.iou_threshold,
-        )
+        indices = _nms(pixel_boxes, scores, self.iou_threshold)
 
         if len(indices) == 0:
             return np.empty((0, 4), dtype=np.float32), np.empty((0,), dtype=np.float32)
 
-        indices = np.array(indices).flatten()
-        return pixel_boxes[indices].astype(np.int32), scores[indices]
+        return np.rint(pixel_boxes[indices]).astype(np.int32), scores[indices]
 
     # ── API chính ─────────────────────────────────────────────────────────────
     def detect(self, image_bgr: np.ndarray):
