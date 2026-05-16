@@ -23,7 +23,7 @@ Dataset layout:    data/employees/{employee_id}/*.jpg
 Build/update the local identity store:
 
 ```bash
-python -m attendance_pipeline.enroll_identity_store \
+python -m pipeline.enroll_identity_store \
   --bucket Hust \
   --dataset-root data/employees
 ```

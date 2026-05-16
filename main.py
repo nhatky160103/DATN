@@ -12,16 +12,16 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "frame-reader":
-        from attendance_pipeline.frame_reader import run_frame_reader
+        from pipeline.frame_reader import run_frame_reader
 
         run_frame_reader()
     elif args.command == "worker":
-        from attendance_pipeline.config import load_pipeline_config
-        from attendance_pipeline.worker import AttendancePipelineWorker
+        from pipeline.config import load_pipeline_config
+        from pipeline.worker import AttendancePipelineWorker
 
         AttendancePipelineWorker(load_pipeline_config()).run_forever()
     elif args.command == "api":
-        from attendance_pipeline.api import app
+        from pipeline.api import app
 
         app.run(host="0.0.0.0", port=5000)
 

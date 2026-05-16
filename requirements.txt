@@ -2,6 +2,7 @@ faiss-cpu
 firebase-admin
 flask
 gunicorn
+lap
 mediapipe
 numpy
 onnx

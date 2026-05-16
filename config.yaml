@@ -1,8 +1,10 @@
  
 infer_video:
-  min_face_area: 0.1
+  use_voting: true
+  min_face_area: 0.02
   bbox_threshold: 0.7
   required_images: 4
+  max_track_buffer: 10
   validation_threshold: 0.7
   is_anti_spoof: False
   anti_spoof_threshold: 0.9
@@ -16,15 +18,16 @@ vector_search:
   image_per_class: 2
 
 detection:
-  # python_mtcnn: worker runs optimized PyTorch MTCNN.
-  # external_cpp: worker reads detections from redis.detection_queue.
-  provider: 'python_mtcnn'
-  # Keep MTCNN, but resize frames before detection to reduce CPU latency.
-  mtcnn_max_side: 640
-  mtcnn_min_face_size: 40
-  mtcnn_factor: 0.8
-  mtcnn_keep_all: true
-  torch_num_threads: 2
+  provider: 'triton_ultralight'
+  input_width: 320
+  input_height: 240
+  iou_threshold: 0.4
+
+tracking:
+  track_thresh: 0.6
+  match_thresh: 0.8
+  track_buffer: 30
+  frame_rate: 30
 
 pipeline:
   bucket_name: 'Hust'
@@ -46,6 +49,7 @@ redis:
 triton:
   enabled: true
   url: 'triton:8000'
+  detector_model: 'ultralight'
   arcface_model: 'arcface'
   quality_model: 'lightqnet'
   fasnet_v1_model: 'fasnet_v1se'

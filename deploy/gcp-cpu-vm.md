@@ -45,7 +45,7 @@ Dataset folder:    dataset-root/{employee_id}/*.jpg
 Build the local identity store:
 
 ```bash
-python -m attendance_pipeline.enroll_identity_store \
+python -m pipeline.enroll_identity_store \
   --bucket "$BUCKET_NAME" \
   --dataset-root data/employees
 ```
@@ -87,7 +87,7 @@ python -m models.Anti_spoof.export_onnx \
   --output triton_model_repository/fasnet_v2/1/model.onnx
 ```
 
-If model files are missing, set `TRITON_ENABLED=false` or `infer_video.is_anti_spoof=false` and the worker will use legacy Python fallback where possible.
+If model files are missing, keep the affected Triton model disabled at the pipeline level, for example `infer_video.is_anti_spoof=false` for FASNet. Runtime inference is served by Triton ONNX models only.
 
 Smoke test artifacts before starting the full pipeline:
 
