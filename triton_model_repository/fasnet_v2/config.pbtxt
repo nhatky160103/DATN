@@ -1,5 +1,6 @@
 name: "fasnet_v2"
 platform: "onnxruntime_onnx"
+default_model_filename: "2.7_80x80_MiniFASNetV2.onnx"
 max_batch_size: 16
 input [
   {
@@ -18,5 +19,10 @@ output [
 instance_group [
   {
     kind: KIND_CPU
+    count: 1
   }
 ]
+dynamic_batching {
+  preferred_batch_size: [4, 8, 16]
+  max_queue_delay_microseconds: 1000
+}

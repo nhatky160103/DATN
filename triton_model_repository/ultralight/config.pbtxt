@@ -1,19 +1,24 @@
-name: "fasnet_v1se"
+name: "ultralight"
 platform: "onnxruntime_onnx"
-default_model_filename: "4_0_0_80x80_MiniFASNetV1SE.onnx"
+default_model_filename: "version-slim-320-dynamic.onnx"
 max_batch_size: 16
 input [
   {
     name: "input"
     data_type: TYPE_FP32
-    dims: [3, 80, 80]
+    dims: [3, 240, 320]
   }
 ]
 output [
   {
-    name: "logits"
+    name: "scores"
     data_type: TYPE_FP32
-    dims: [3]
+    dims: [4420, 2]
+  },
+  {
+    name: "boxes"
+    data_type: TYPE_FP32
+    dims: [4420, 4]
   }
 ]
 instance_group [
