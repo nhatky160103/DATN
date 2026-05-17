@@ -79,5 +79,17 @@ class RedisStreamQueue:
             return None
         return json.loads(payload)
 
+    def recent(self, count: int = 20) -> list[dict[str, Any]]:
+        items = self.client.xrevrange(self.name, count=max(1, int(count)))
+        results = []
+        for stream_id, fields in items:
+            payload = fields.get(b"payload")
+            if payload is None:
+                continue
+            item = json.loads(payload)
+            item["_stream_id"] = stream_id.decode("utf-8")
+            results.append(item)
+        return results
+
     def ping(self) -> bool:
         return bool(self.client.ping())

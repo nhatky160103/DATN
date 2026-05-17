@@ -30,3 +30,6 @@ class ResponseWriter:
 
     def latest(self) -> dict | None:
         return self.queue.peek_latest()
+
+    def recent(self, count: int = 20) -> list[dict]:
+        return self.queue.recent(count)
