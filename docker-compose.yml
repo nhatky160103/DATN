@@ -14,15 +14,17 @@ services:
       --strict-model-config=true
       --log-info=true
     volumes:
-      - ../triton_model_repository:/models:ro
+      - ./triton_model_repository:/models:ro
     ports:
       - "8000:8000"
       - "8001:8001"
       - "8002:8002"
 
   frame-reader:
+    profiles:
+      - pipeline
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile.cpu
     restart: unless-stopped
     command: python -m pipeline.frame_reader --config config.yaml --camera-id camera-01
@@ -30,13 +32,15 @@ services:
       - redis
     environment:
       REDIS_URL: redis://redis:6379/0
-      CAMERA_SOURCE: ${CAMERA_SOURCE}
+      CAMERA_SOURCE: ${CAMERA_SOURCE:-}
     volumes:
-      - ../config.yaml:/app/config.yaml:ro
+      - ./config.yaml:/app/config.yaml:ro
 
   worker:
+    profiles:
+      - pipeline
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile.cpu
     restart: unless-stopped
     command: python -m pipeline.worker --config config.yaml
@@ -51,11 +55,13 @@ services:
       REDIS_CONSUMER_GROUP: attendance-workers
       REDIS_CONSUMER_NAME: worker-01
     volumes:
-      - ..:/app
+      - .:/app
 
   api:
+    profiles:
+      - pipeline
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile.cpu
     restart: unless-stopped
     command: gunicorn -b 0.0.0.0:5000 pipeline.api:app
@@ -66,6 +72,6 @@ services:
       REDIS_URL: redis://redis:6379/0
       BUCKET_NAME: ${BUCKET_NAME:-Hust}
     volumes:
-      - ..:/app
+      - .:/app
     ports:
       - "5000:5000"
