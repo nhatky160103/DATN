@@ -14,11 +14,8 @@ vector_search:
   l2_threshold: 27.5
   cosine_threshold: 0.78
   distance_mode: 'cosine'
-  qscore_collect_threshold: 0.5
-  image_per_class: 2
 
 detection:
-  provider: 'triton_ultralight'
   input_width: 320
   input_height: 240
   iou_threshold: 0.4
@@ -32,17 +29,23 @@ tracking:
 pipeline:
   bucket_name: 'Hust'
 
-camera:
-  # Use "0" for a local webcam or an RTSP URL for an IP camera.
-  source: 'rtsp://user:password@camera-ip:554/stream1'
-  sample_interval_ms: 500
-  jpeg_quality: 85
-  reconnect_delay_sec: 3
+database:
+  url: 'postgresql://camera_app:camera_app_dev_password@postgres:5432/camera_db'
+  camera_poll_interval_sec: 10
+
+cameras:
+  - id: 'camera-01'
+    name: 'Main camera'
+    # Use "0" for a local webcam or an RTSP URL for an IP camera.
+    source: 'rtsp://user:password@camera-ip:554/stream1'
+    enabled: true
+    sample_interval_ms: 500
+    jpeg_quality: 85
+    reconnect_delay_sec: 3
 
 redis:
   url: 'redis://redis:6379/0'
   frame_queue: 'attendance:frames'
-  detection_queue: 'attendance:detections'
   result_queue: 'attendance:results'
   max_queue_size: 128
   consumer_group: 'attendance-workers'

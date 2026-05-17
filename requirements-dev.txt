@@ -1,0 +1,16 @@
+-r requirements.txt
+
+firebase-admin
+mediapipe
+onnx
+onnxruntime
+onnxsim
+pillow
+psutil
+python-dotenv
+requests
+scikit-learn
+tensorflow==2.15.1; python_version < "3.12"
+torch
+torchvision
+tqdm
