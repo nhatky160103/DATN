@@ -27,7 +27,7 @@ SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 def read_image(path: str) -> np.ndarray | None:
     """Read image like the original LightQNet pipeline."""
-    return cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+    return cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
 
 
 def preprocess(img_bgr: np.ndarray, grayscale: bool) -> np.ndarray:
