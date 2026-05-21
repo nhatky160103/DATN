@@ -28,11 +28,19 @@ class DatabaseConfig:
 
 
 @dataclass(frozen=True)
+class QdrantConfig:
+    url: str = "http://qdrant:6333"
+    api_key: str = ""
+    collection: str = "face_embeddings"
+
+
+@dataclass(frozen=True)
 class CameraConfig:
     id: str = "camera-01"
     name: str = "Default camera"
     source: str = "0"
     enabled: bool = True
+    rotate: int = 0
     sample_interval_ms: int = 500
     jpeg_quality: int = 85
     reconnect_delay_sec: float = 3.0
@@ -53,9 +61,12 @@ class TritonConfig:
 @dataclass(frozen=True)
 class DetectionConfig:
     provider: str = "triton_ultralight"
-    input_width: int = 320
-    input_height: int = 240
+    input_width: int = 640
+    input_height: int = 480
     iou_threshold: float = 0.4
+    crop_margin: float = 0.25
+    crop_margin_x: float | None = None
+    crop_margin_y: float | None = None
 
 
 @dataclass(frozen=True)
@@ -81,8 +92,10 @@ class PipelineConfig:
     distance_mode: str = "cosine"
     l2_threshold: float = 27.5
     cosine_threshold: float = 0.78
+    vector_search_backend: str = "qdrant"
     redis: RedisConfig = RedisConfig()
     database: DatabaseConfig = DatabaseConfig()
+    qdrant: QdrantConfig = QdrantConfig()
     camera: CameraConfig = CameraConfig()
     cameras: tuple[CameraConfig, ...] = (CameraConfig(),)
     triton: TritonConfig = TritonConfig()
@@ -116,6 +129,7 @@ def _load_camera_config(raw_camera: dict[str, Any], default_id: str = "camera-01
         name=str(raw_camera.get("name", raw_camera.get("id", default_id))),
         source=str(raw_camera.get("source", CameraConfig.source)),
         enabled=_as_bool(raw_camera.get("enabled", CameraConfig.enabled)),
+        rotate=int(raw_camera.get("rotate", CameraConfig.rotate)),
         sample_interval_ms=int(raw_camera.get("sample_interval_ms", CameraConfig.sample_interval_ms)),
         jpeg_quality=int(raw_camera.get("jpeg_quality", CameraConfig.jpeg_quality)),
         reconnect_delay_sec=float(raw_camera.get("reconnect_delay_sec", CameraConfig.reconnect_delay_sec)),
@@ -135,6 +149,7 @@ def load_pipeline_config(path: str | Path = "config.yaml") -> PipelineConfig:
     tracking = raw.get("tracking", {})
     infer_video = raw.get("infer_video", {})
     identity = raw.get("vector_search", raw.get("identity_person", {}))
+    qdrant = raw.get("qdrant", {})
     pipeline = raw.get("pipeline", {})
 
     redis_cfg = RedisConfig(
@@ -152,6 +167,15 @@ def load_pipeline_config(path: str | Path = "config.yaml") -> PipelineConfig:
         camera_poll_interval_sec=float(
             database.get("camera_poll_interval_sec", DatabaseConfig.camera_poll_interval_sec)
         ),
+    )
+    qdrant_collection = os.getenv(
+        "QDRANT_COLLECTION",
+        identity.get("collection", qdrant.get("collection", QdrantConfig.collection)),
+    )
+    qdrant_cfg = QdrantConfig(
+        url=os.getenv("QDRANT_URL", qdrant.get("url", QdrantConfig.url)),
+        api_key=os.getenv("QDRANT_API_KEY", qdrant.get("api_key", QdrantConfig.api_key)),
+        collection=str(qdrant_collection),
     )
     if cameras:
         camera_list = tuple(_load_camera_config(item, f"camera-{index + 1:02d}") for index, item in enumerate(cameras))
@@ -174,6 +198,13 @@ def load_pipeline_config(path: str | Path = "config.yaml") -> PipelineConfig:
         input_width=int(detection.get("input_width", DetectionConfig.input_width)),
         input_height=int(detection.get("input_height", DetectionConfig.input_height)),
         iou_threshold=float(detection.get("iou_threshold", DetectionConfig.iou_threshold)),
+        crop_margin=float(detection.get("crop_margin", DetectionConfig.crop_margin)),
+        crop_margin_x=(
+            None if detection.get("crop_margin_x") is None else float(detection.get("crop_margin_x"))
+        ),
+        crop_margin_y=(
+            None if detection.get("crop_margin_y") is None else float(detection.get("crop_margin_y"))
+        ),
     )
     tracking_cfg = TrackingConfig(
         track_thresh=float(tracking.get("track_thresh", TrackingConfig.track_thresh)),
@@ -196,8 +227,13 @@ def load_pipeline_config(path: str | Path = "config.yaml") -> PipelineConfig:
         distance_mode=identity.get("distance_mode", PipelineConfig.distance_mode),
         l2_threshold=float(identity.get("l2_threshold", PipelineConfig.l2_threshold)),
         cosine_threshold=float(identity.get("cosine_threshold", PipelineConfig.cosine_threshold)),
+        vector_search_backend=os.getenv(
+            "VECTOR_SEARCH_BACKEND",
+            identity.get("backend", PipelineConfig.vector_search_backend),
+        ),
         redis=redis_cfg,
         database=database_cfg,
+        qdrant=qdrant_cfg,
         camera=camera_cfg,
         cameras=camera_list,
         triton=triton_cfg,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import os
 import time
 from collections import Counter, defaultdict, deque
 from typing import Any
@@ -10,18 +11,18 @@ import numpy as np
 
 from .config import PipelineConfig
 from .identity_store import IdentityStoreConfig, LocalFaissIdentityStore
+from .qdrant_identity_store import build_qdrant_identity_search
 from .schemas import FaceDetection, RecognitionResult, TrackedFace
 from .stages.detection import FaceDetectionStage
 from .stages.embedding import FaceEmbeddingStage
 from .stages.liveness import FaceLivenessStage
 from .stages.quality import FaceQualityStage
 from .stages.bytetrack_adapter import FaceTrackingStage
-from .stages.vector_search import IdentitySearchStage
 from .triton_client import TritonInferenceClient
 
 
 class RecognitionOrchestrator:
-    """Coordinates preprocessing, Triton model calls, tracking, FAISS, and decision logic."""
+    """Coordinates preprocessing, Triton model calls, tracking, vector search, and decision logic."""
 
     def __init__(self, cfg: PipelineConfig):
         self.cfg = cfg
@@ -33,6 +34,9 @@ class RecognitionOrchestrator:
             iou_threshold=cfg.detection.iou_threshold,
             input_width=cfg.detection.input_width,
             input_height=cfg.detection.input_height,
+            crop_margin=cfg.detection.crop_margin,
+            crop_margin_x=cfg.detection.crop_margin_x,
+            crop_margin_y=cfg.detection.crop_margin_y,
         )
         self.trackers: dict[str, FaceTrackingStage] = defaultdict(self._new_tracker)
         self.quality = FaceQualityStage(cfg.qscore_threshold, self.triton, cfg.triton.quality_model)
@@ -57,7 +61,10 @@ class RecognitionOrchestrator:
             frame_rate=self.cfg.tracking.frame_rate,
         )
 
-    def _load_identity_index(self) -> IdentitySearchStage:
+    def _load_identity_index(self):
+        if self.cfg.vector_search_backend == "qdrant":
+            return build_qdrant_identity_search(self.cfg)
+
         store = LocalFaissIdentityStore(
             IdentityStoreConfig(
                 bucket_name=self.cfg.bucket_name,
@@ -112,6 +119,7 @@ class RecognitionOrchestrator:
                         "camera_id": response["camera_id"],
                         "frame_id": response["frame_id"],
                         "bbox": face.get("bbox"),
+                        "crop_bbox": face.get("crop_bbox"),
                         "det_score": face.get("det_score"),
                         "quality_score": face.get("quality_score"),
                         "liveness_score": face.get("liveness_score"),
@@ -135,6 +143,7 @@ class RecognitionOrchestrator:
                 bbox=detection.bbox,
                 score=detection.score,
                 crop_jpeg_b64=detection.crop_jpeg_b64,
+                crop_bbox=detection.crop_bbox,
             )
             for index, detection in enumerate(detections)
         ]
@@ -153,6 +162,7 @@ class RecognitionOrchestrator:
         base = {
             "track_id": tracked.track_id,
             "bbox": tracked.bbox,
+            "crop_bbox": tracked.crop_bbox,
             "det_score": round(float(tracked.score), 6),
             "frame_id": frame_id,
         }
@@ -166,6 +176,13 @@ class RecognitionOrchestrator:
 
         quality_ok, quality_score = self.quality.accept(face)
         base["quality_score"] = round(float(quality_score), 6)
+        if os.getenv("SAVE_QUALITY_DEBUG"):
+            os.makedirs("debug_quality", exist_ok=True)
+            safe_frame_id = frame_id.replace("/", "_")
+            cv2.imwrite(
+                f"debug_quality/{camera_id}_{safe_frame_id}_track-{tracked.track_id}_q-{quality_score:.6f}.jpg",
+                face,
+            )
         if not quality_ok:
             return {**base, "status": "quality_rejected"}
 

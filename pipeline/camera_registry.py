@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Protocol
 
 from .config import CameraConfig, PipelineConfig
@@ -54,7 +55,7 @@ class PostgresCameraRegistry:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, name, rtsp_url, enabled, sample_interval_ms, jpeg_quality, reconnect_delay_sec
+                    SELECT id, name, rtsp_url, enabled, sample_interval_ms, jpeg_quality, reconnect_delay_sec, metadata
                     FROM cameras
                     WHERE enabled = TRUE
                     ORDER BY id
@@ -67,7 +68,7 @@ class PostgresCameraRegistry:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, name, rtsp_url, enabled, sample_interval_ms, jpeg_quality, reconnect_delay_sec
+                    SELECT id, name, rtsp_url, enabled, sample_interval_ms, jpeg_quality, reconnect_delay_sec, metadata
                     FROM cameras
                     WHERE id = %s
                     """,
@@ -104,12 +105,17 @@ class PostgresCameraRegistry:
 
     @staticmethod
     def _row_to_camera(row: tuple) -> CameraConfig:
-        camera_id, name, source, enabled, sample_interval_ms, jpeg_quality, reconnect_delay_sec = row
+        camera_id, name, source, enabled, sample_interval_ms, jpeg_quality, reconnect_delay_sec, metadata = row
+        if metadata is None:
+            metadata = {}
+        if isinstance(metadata, str):
+            metadata = json.loads(metadata)
         return CameraConfig(
             id=str(camera_id),
             name=str(name),
             source=str(source),
             enabled=bool(enabled),
+            rotate=int(metadata.get("rotate", 0)),
             sample_interval_ms=int(sample_interval_ms),
             jpeg_quality=int(jpeg_quality),
             reconnect_delay_sec=float(reconnect_delay_sec),

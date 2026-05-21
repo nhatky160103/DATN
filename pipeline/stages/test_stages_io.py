@@ -45,11 +45,11 @@ def _face_from_detection(detections: list[FaceDetection]) -> tuple[np.ndarray, l
 
 
 def test_detection(triton: TritonInferenceClient, frame: np.ndarray) -> list[FaceDetection]:
-    image = preprocess_ultralight(frame)
-    _assert_shape("ultralight input", image.shape, (1, 3, 240, 320))
+    image = preprocess_ultralight(frame, input_width=640, input_height=480)
+    _assert_shape("ultralight input", image.shape, (1, 3, 480, 640))
     assert image.dtype == np.float32
 
-    detections = FaceDetectionStage(triton, threshold=0.7).predict(frame)
+    detections = FaceDetectionStage(triton, threshold=0.7, input_width=640, input_height=480).predict(frame)
     assert isinstance(detections, list)
     for item in detections:
         assert isinstance(item, FaceDetection)

@@ -16,6 +16,28 @@ def preprocess_ultralight(frame_bgr: np.ndarray, input_width: int = 320, input_h
     return np.transpose(image, (2, 0, 1))[None, ...].astype(np.float32, copy=False)
 
 
+def expand_box(
+    box: list[int],
+    width: int,
+    height: int,
+    margin_x: float,
+    margin_y: float | None = None,
+) -> list[int]:
+    if margin_y is None:
+        margin_y = margin_x
+    x1, y1, x2, y2 = box
+    box_width = max(1, x2 - x1)
+    box_height = max(1, y2 - y1)
+    pad_x = box_width * margin_x
+    pad_y = box_height * margin_y
+    return [
+        int(max(0, round(x1 - pad_x))),
+        int(max(0, round(y1 - pad_y))),
+        int(min(width - 1, round(x2 + pad_x))),
+        int(min(height - 1, round(y2 + pad_y))),
+    ]
+
+
 def _nms(boxes: np.ndarray, scores: np.ndarray, threshold: float) -> np.ndarray:
     if len(boxes) == 0:
         return np.empty((0,), dtype=np.int64)
@@ -53,6 +75,9 @@ class FaceDetectionStage:
         iou_threshold: float = 0.4,
         input_width: int = 320,
         input_height: int = 240,
+        crop_margin: float = 0.25,
+        crop_margin_x: float | None = None,
+        crop_margin_y: float | None = None,
     ):
         self.triton = triton
         self.model_name = model_name
@@ -60,6 +85,8 @@ class FaceDetectionStage:
         self.iou_threshold = iou_threshold
         self.input_width = input_width
         self.input_height = input_height
+        self.crop_margin_x = crop_margin if crop_margin_x is None else crop_margin_x
+        self.crop_margin_y = crop_margin if crop_margin_y is None else crop_margin_y
 
     def _preprocess(self, frame_bgr: np.ndarray) -> np.ndarray:
         return preprocess_ultralight(frame_bgr, self.input_width, self.input_height)
@@ -98,15 +125,23 @@ class FaceDetectionStage:
             x1, y1, x2, y2 = [int(round(value)) for value in box]
             if x2 <= x1 or y2 <= y1:
                 continue
-            crop = frame_bgr[y1:y2, x1:x2]
+            crop_x1, crop_y1, crop_x2, crop_y2 = expand_box(
+                [x1, y1, x2, y2],
+                width,
+                height,
+                self.crop_margin_x,
+                self.crop_margin_y,
+            )
+            crop = frame_bgr[crop_y1:crop_y2, crop_x1:crop_x2]
             ok, encoded = cv2.imencode(".jpg", crop)
             if not ok:
                 continue
             detections.append(
                 FaceDetection(
-                    bbox=[x1, y1, x2, y2],
+                    bbox=[crop_x1, crop_y1, crop_x2, crop_y2],
                     score=float(score),
                     crop_jpeg_b64=base64.b64encode(encoded.tobytes()).decode("ascii"),
+                    crop_bbox=[crop_x1, crop_y1, crop_x2, crop_y2],
                 )
             )
         return detections

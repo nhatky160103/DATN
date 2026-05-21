@@ -18,6 +18,19 @@ def _camera_source(raw: str) -> str | int:
     return int(raw) if raw.isdigit() else raw
 
 
+def _apply_rotation(frame: np.ndarray, rotate: int) -> np.ndarray:
+    angle = rotate % 360
+    if angle == 0:
+        return frame
+    if angle == 90:
+        return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    if angle == 180:
+        return cv2.rotate(frame, cv2.ROTATE_180)
+    if angle == 270:
+        return cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    raise ValueError(f"Unsupported camera rotation: {rotate}. Use 0, 90, 180, or 270.")
+
+
 def _gstreamer_pipeline(source: str) -> str:
     if source.isdigit():
         return (
@@ -122,6 +135,7 @@ def _read_camera(
             if not ok:
                 registry.mark_error(camera.id, "Cannot read frame")
                 break
+            frame = _apply_rotation(frame, camera.rotate)
 
             now = time.time()
             if now - last_emit < interval_sec:
