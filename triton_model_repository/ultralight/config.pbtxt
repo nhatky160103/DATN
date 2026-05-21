@@ -1,24 +1,24 @@
 name: "ultralight"
 platform: "onnxruntime_onnx"
-default_model_filename: "version-slim-320-dynamic.onnx"
+default_model_filename: "version-RFB-640-dynamic.onnx"
 max_batch_size: 16
 input [
   {
     name: "input"
     data_type: TYPE_FP32
-    dims: [3, 240, 320]
+    dims: [3, 480, 640]
   }
 ]
 output [
   {
     name: "scores"
     data_type: TYPE_FP32
-    dims: [4420, 2]
+    dims: [17640, 2]
   },
   {
     name: "boxes"
     data_type: TYPE_FP32
-    dims: [4420, 4]
+    dims: [17640, 4]
   }
 ]
 instance_group [
