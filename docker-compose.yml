@@ -23,6 +23,15 @@ services:
       timeout: 3s
       retries: 10
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
   triton:
     image: nvcr.io/nvidia/tritonserver:24.12-py3
     restart: unless-stopped
@@ -68,9 +77,14 @@ services:
     depends_on:
       - redis
       - triton
+      - qdrant
     environment:
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: ${DATABASE_URL}
+      VECTOR_SEARCH_BACKEND: qdrant
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT_COLLECTION: face_embeddings
       TRITON_URL: triton:8000
       TRITON_ENABLED: "true"
       BUCKET_NAME: ${BUCKET_NAME:-Hust}
@@ -90,9 +104,14 @@ services:
     depends_on:
       - redis
       - worker
+      - qdrant
     environment:
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: ${DATABASE_URL}
+      VECTOR_SEARCH_BACKEND: qdrant
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT_COLLECTION: face_embeddings
       BUCKET_NAME: ${BUCKET_NAME:-Hust}
     volumes:
       - .:/app
@@ -101,3 +120,4 @@ services:
 
 volumes:
   postgres-data:
+  qdrant-data:

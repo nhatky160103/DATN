@@ -11,14 +11,23 @@ infer_video:
   qscore_threshold: 0.4
 
 vector_search:
+  backend: 'qdrant'
+  collection: 'face_embeddings'
   l2_threshold: 27.5
   cosine_threshold: 0.78
   distance_mode: 'cosine'
 
+qdrant:
+  url: 'http://qdrant:6333'
+  api_key: ''
+
 detection:
-  input_width: 320
-  input_height: 240
+  input_width: 640
+  input_height: 480
   iou_threshold: 0.4
+  crop_margin: 0.25
+  crop_margin_x: 0.1
+  crop_margin_y: 0.15
 
 tracking:
   track_thresh: 0.6
@@ -39,6 +48,7 @@ cameras:
     # Use "0" for a local webcam or an RTSP URL for an IP camera.
     source: 'rtsp://user:password@camera-ip:554/stream1'
     enabled: true
+    rotate: 90
     sample_interval_ms: 500
     jpeg_quality: 85
     reconnect_delay_sec: 3
