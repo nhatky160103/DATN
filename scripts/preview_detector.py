@@ -100,7 +100,6 @@ def main() -> None:
             vis = frame.copy()
             for detection in detections:
                 _draw_detection(vis, detection.bbox, detection.score)
-                _draw_crop_box(vis, detection.crop_bbox)
 
             fps = 1000.0 / elapsed_ms if elapsed_ms > 0 else 0.0
             _draw_status(
@@ -113,9 +112,7 @@ def main() -> None:
                 cv2.imwrite(str(output_path), vis)
                 if args.save_crops:
                     for index, detection in enumerate(detections):
-                        if not detection.crop_bbox:
-                            continue
-                        x1, y1, x2, y2 = detection.crop_bbox
+                        x1, y1, x2, y2 = detection.bbox
                         crop = frame[y1:y2, x1:x2]
                         cv2.imwrite(str(snapshot_dir / f"crop_{frame_index:06d}_{index}.jpg"), crop)
                 if frame_index % 30 == 0:

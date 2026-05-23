@@ -8,18 +8,13 @@ infer_video:
   validation_threshold: 0.7
   is_anti_spoof: False
   anti_spoof_threshold: 0.9
-  qscore_threshold: 0.4
-
-vector_search:
-  backend: 'qdrant'
-  collection: 'face_embeddings'
-  l2_threshold: 27.5
-  cosine_threshold: 0.78
-  distance_mode: 'cosine'
+  qscore_threshold: 0.35
 
 qdrant:
   url: 'http://qdrant:6333'
   api_key: ''
+  collection: 'face_embeddings'
+  match_threshold: 0.4
 
 detection:
   input_width: 640
