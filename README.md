@@ -1,100 +1,187 @@
-# Headless Face Attendance Pipeline
+# Deep Learning-Based Face Recognition Attendance Platform
 
-Production pipeline:
+<div align="center">
+
+![Project Status](https://img.shields.io/badge/status-active-success.svg)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+![Docker](https://img.shields.io/badge/runtime-docker%20compose-2496ED.svg)
+![Triton](https://img.shields.io/badge/inference-NVIDIA%20Triton-76B900.svg)
+![Qdrant](https://img.shields.io/badge/vector%20search-Qdrant-DC244C.svg)
+
+**A production-oriented face recognition attendance platform with realtime camera ingestion, AI inference, vector search, event storage, and an Admin Dashboard.**
+
+[Documentation](docs/) • [Architecture](docs/architecture.md) • [Installation](docs/installation.md) • [Usage](docs/usage.md) • [Operations](docs/operations.md) • [Research Results](docs/results.md)
+
+</div>
+
+---
+
+## Overview
+
+This project builds an end-to-end attendance system based on face recognition. It continuously reads frames from cameras, detects and validates faces, extracts ArcFace embeddings, searches identities in Qdrant, stores attendance events, and exposes a web dashboard for system administration.
+
+The platform is designed around independent services so that camera ingestion, AI inference, vector search, storage, and administration can be operated and debugged separately.
+
+**Author:** Dinh Nhat Ky  
+**Institution:** School of Information and Communication Technology, Hanoi University of Science and Technology
+
+## Core Capabilities
+
+- Multi-camera RTSP/webcam ingestion.
+- PostgreSQL camera registry and attendance event storage.
+- Redis Streams for frame buffering and realtime result delivery.
+- Triton-served AI models for detection, quality, liveness, and embedding.
+- Qdrant vector search for identity recognition.
+- Track-level multi-frame validation to reduce unstable single-frame decisions.
+- Admin Dashboard for cameras, identities, thresholds, and system status.
+- Docker Compose runtime for reproducible local/server deployment.
+
+## System Overview
+
+```mermaid
+flowchart LR
+    CamerasInput[RTSP / Webcam Sources] --> Reader[frame-reader\ncamera sampling]
+    CameraDB[(PostgreSQL\ncamera registry)] --> Reader
+    Config[config.yaml\nruntime thresholds] --> Reader
+
+    Reader --> FrameStream[(Redis Stream\nattendance:frames)]
+    FrameStream --> Worker[worker\nrecognition orchestrator]
+    Config --> Worker
+
+    Worker --> Triton[Triton Inference Server]
+    Triton --> Models[UltraLight + LightQNet + MiniFASNet + ArcFace]
+    Worker --> Qdrant[(Qdrant\nidentity embeddings)]
+    Worker --> EventDB[(PostgreSQL\nattendance_events)]
+    Worker --> ResultStream[(Redis Stream\nattendance:results)]
+
+    Dashboard[Admin Dashboard] --> API[Flask API]
+    API --> CameraDB
+    API --> EventDB
+    API --> Qdrant
+    API --> ResultStream
+
+    classDef service fill:#e8f1ff,stroke:#4c78a8,color:#102a43;
+    classDef storage fill:#f4f7ec,stroke:#6b8e23,color:#1f2d16;
+    classDef queue fill:#fff4df,stroke:#c27c0e,color:#2b1b00;
+    classDef model fill:#f2e8ff,stroke:#7b61a8,color:#241137;
+    class CamerasInput,Reader,Worker,Triton,API,Dashboard,Config service;
+    class CameraDB,Qdrant,EventDB storage;
+    class FrameStream,ResultStream queue;
+    class Models model;
+```
+
+## Recognition Pipeline
+
+```mermaid
+flowchart LR
+    Frame[Camera frame] --> Sample[Sample + rotate + JPEG encode]
+    Sample --> Queue[Redis frame stream]
+    Queue --> Detect[Face detection\nUltraLight]
+    Detect --> Crop[Expanded face crop]
+    Crop --> Track[Tracking\nByteTrack]
+    Track --> Quality[Quality scoring\nLightQNet]
+    Quality --> Live[Liveness check\nMiniFASNet]
+    Live --> Embed[Face embedding\nArcFace 512-d]
+    Embed --> Search[Identity search\nQdrant top-k cosine]
+    Search --> Aggregate[Multi-frame track aggregation]
+    Aggregate --> Result[Recognition result\nrecognized / unknown / pending / rejected]
+    Result --> Store[PostgreSQL events]
+    Result --> Stream[Redis result stream]
+    Stream --> Dashboard[Admin Dashboard]
+```
+
+## Tech Stack
+
+| Layer | Technology |
+| --- | --- |
+| Runtime | Docker Compose |
+| API/Dashboard | Flask, Gunicorn |
+| Camera input | RTSP / webcam |
+| Camera ingestion | OpenCV VideoCapture / optional GStreamer |
+| Queue | Redis Streams |
+| Database | PostgreSQL |
+| Vector search | Qdrant |
+| Model serving | NVIDIA Triton Inference Server |
+| Detection | Ultra-Light Face Detector |
+| Tracking | ByteTrack |
+| Quality | LightQNet |
+| Liveness | MiniFASNet |
+| Embedding | ArcFace-compatible ONNX model |
+
+## Quick Start
+
+```bash
+cp .env.example .env
+docker compose --profile pipeline up -d --build
+```
+
+Open the Admin Dashboard:
 
 ```text
-RTSP Camera -> Frame Reader/Sampler -> Redis Queue -> MTCNN Detection
--> Face Tracking -> LightQNet Quality -> FASNet Liveness
--> ArcFace Embedding on Triton -> FAISS Vector Search -> Firebase + Response API
+http://localhost:5000
 ```
 
-The old Flask dashboard and Cloudinary flow have been removed from the runtime path. Employee identity is deterministic: each FAISS vector row stores the exact Firebase `employee_id`.
-
-## Identity Contract
-
-```text
-Firebase employee: {bucket}/Employees/{employee_id}
-Firebase events:   {bucket}/RecognitionEvents/{event_id}
-FAISS metadata:    local_embeddings/{bucket}/ms1mv3_arcface_employee_ids.pkl
-Vector mapping:    employee_ids[row] == employee_id for embeddings[row]
-Dataset layout:    data/employees/{employee_id}/*.jpg
-```
-
-Build/update the local identity store:
+Enroll identities:
 
 ```bash
-python -m pipeline.enroll_identity_store \
-  --bucket Hust \
-  --dataset-root data/employees
+docker compose --profile pipeline run --rm worker \
+  python -m pipeline.enroll_qdrant_identity_store \
+  --config config.yaml \
+  --dataset-root FacenetDataset
 ```
 
-## Run Locally
+Check status:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-python main.py frame-reader
-python main.py worker
-python main.py api
-```
-
-Smoke-test Redis Stream after starting Redis:
-
-```bash
-.venv/bin/python -B scripts/test_redis_stream.py
-```
-
-For local ONNX smoke tests:
-
-```bash
-pip install -r requirements.txt
-python -m models.test_model_inference
-```
-
-For MTCNN ONNX and PyTorch comparison:
-
-```bash
-pip install -r requirements.txt
-python -m models.Detection.export_onnx --output-dir models/Detection/onnx
-python -m models.Detection.test_onnx --onnx-dir models/Detection/onnx --compare-detector
-```
-
-For model export:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Deploy On GCP CPU VM
-
-```bash
-docker compose up -d --build
 curl http://localhost:5000/health
-curl http://localhost:5000/results/latest
+curl http://localhost:5000/system/status
+curl "http://localhost:5000/results/recent?count=20"
 ```
 
-Prepare Triton models under `triton_model_repository/*/1/` before starting the stack. See [deploy/gcp-cpu-vm.md](deploy/gcp-cpu-vm.md).
+## Documentation
 
-Smoke test model artifacts before running the pipeline:
+| Document | Purpose |
+| --- | --- |
+| [Architecture](docs/architecture.md) | Detailed service architecture, data contracts, storage model, and diagrams |
+| [Installation](docs/installation.md) | Environment setup, Docker Compose startup, and model checks |
+| [Usage](docs/usage.md) | Dashboard usage, camera management, identity enrollment, API examples |
+| [Operations](docs/operations.md) | Logs, health checks, Redis/PostgreSQL/Qdrant/Triton debug commands |
+| [Triton Models](triton_model_repository/README.md) | Triton model repository layout and model input/output contracts |
+| [Training](docs/training.md) | ArcFace/CDML training direction and production export path |
+| [Results](docs/results.md) | Research accuracy, latency, threshold, and error analysis |
+| [References](docs/references.md) | Bibliography and related work |
+| [Future Work](docs/future-work.md) | Production and model roadmap |
 
-```bash
-python -m models.test_model_inference
-python -m models.test_model_inference --triton-url localhost:8000
-```
-
-See [docs/model-runtime-status.md](docs/model-runtime-status.md) for ONNX/Triton status per model.
-
-If MTCNN must run in C++, use it as a detector microservice outside Triton. See [docs/cpp-mtcnn-service.md](docs/cpp-mtcnn-service.md).
-
-## Main Structure
+## Repository Structure
 
 ```text
-attendance_pipeline/       Runtime services and AI stages
-database/                  Firebase/timekeeping only
-infer/                     Shared preprocessing/model loading helpers
-models/                    Model definitions, export scripts, and model smoke tests
-triton_model_repository/   Triton config files
-deploy/                    CPU VM deployment files
+DATN/
+├── config.yaml
+├── docker-compose.yml
+├── database/
+│   └── init/
+├── docs/
+├── FacenetDataset/
+├── models/
+├── pipeline/
+│   ├── api.py
+│   ├── frame_reader.py
+│   ├── worker.py
+│   ├── orchestrator.py
+│   ├── qdrant_identity_store.py
+│   └── stages/
+├── scripts/
+└── triton_model_repository/
+```
+
+## Citation
+
+```bibtex
+@mastersthesis{dinh2026facerecognition,
+  title  = {Building an Optimized Deep Learning Model for Face Recognition in Corporate Attendance Systems},
+  author = {Dinh, Nhat Ky},
+  year   = {2026},
+  school = {Hanoi University of Science and Technology},
+  note   = {School of Information and Communication Technology}
+}
 ```
