@@ -14,10 +14,7 @@ class QdrantIdentityStoreConfig:
     api_key: str
     collection: str
     bucket_name: str
-    distance_mode: str
-    cosine_threshold: float
-    l2_threshold: float
-    vector_size: int = 512
+    match_threshold: float
 
 
 class QdrantIdentitySearchStage:
@@ -40,12 +37,11 @@ class QdrantIdentitySearchStage:
             self._create_payload_indexes()
             return
 
-        distance = models.Distance.COSINE if self.cfg.distance_mode == "cosine" else models.Distance.EUCLID
         self.client.create_collection(
             collection_name=self.cfg.collection,
             vectors_config=models.VectorParams(
-                size=self.cfg.vector_size,
-                distance=distance,
+                size=512,
+                distance=models.Distance.COSINE,
                 on_disk=True,
             ),
             hnsw_config=models.HnswConfigDiff(
@@ -74,17 +70,16 @@ class QdrantIdentitySearchStage:
         size = getattr(vectors_config, "size", None)
         distance = getattr(vectors_config, "distance", None)
 
-        if size is not None and int(size) != self.cfg.vector_size:
+        if size is not None and int(size) != 512:
             raise ValueError(
                 f"Qdrant collection {self.cfg.collection!r} has vector size {size}, "
-                f"expected {self.cfg.vector_size}"
+                "expected 512"
             )
         if distance is not None:
-            expected = "Cosine" if self.cfg.distance_mode == "cosine" else "Euclid"
             actual = getattr(distance, "value", str(distance))
-            if str(actual).lower() != expected.lower():
+            if str(actual).lower() != "cosine":
                 raise ValueError(
-                    f"Qdrant collection {self.cfg.collection!r} uses distance {actual}, expected {expected}"
+                    f"Qdrant collection {self.cfg.collection!r} uses distance {actual}, expected Cosine"
                 )
 
     def _create_payload_indexes(self) -> None:
@@ -106,7 +101,7 @@ class QdrantIdentitySearchStage:
             except Exception:
                 pass
 
-    def search(self, embedding: np.ndarray, top_k: int = 8) -> SearchMatch | None:
+    def search(self, embedding: np.ndarray, top_k: int = 5) -> SearchMatch | None:
         from qdrant_client import models
 
         vector = np.asarray(embedding, dtype=np.float32).reshape(-1)
@@ -138,20 +133,20 @@ class QdrantIdentitySearchStage:
             employee_id = str((point.payload or {}).get("employee_id") or "")
             if not employee_id:
                 continue
-            score = self._score_to_distance(float(point.score))
-            by_employee.setdefault(employee_id, []).append(score)
+            by_employee.setdefault(employee_id, []).append(float(point.score))
         if not by_employee:
             return None
 
-        employee_id, employee_scores = min(by_employee.items(), key=lambda item: float(np.mean(item[1])))
+        employee_id, employee_scores = max(
+            by_employee.items(),
+            key=lambda item: (
+                len(item[1]),
+                max(item[1]),
+                float(np.mean(item[1])),
+            ),
+        )
         score = float(np.mean(employee_scores))
-        threshold = self.cfg.l2_threshold if self.cfg.distance_mode == "l2" else self.cfg.cosine_threshold
-        return SearchMatch(employee_id, score, score <= threshold)
-
-    def _score_to_distance(self, qdrant_score: float) -> float:
-        if self.cfg.distance_mode == "cosine":
-            return 1.0 - qdrant_score
-        return qdrant_score
+        return SearchMatch(employee_id, score, score >= self.cfg.match_threshold)
 
 
 def build_qdrant_identity_search(cfg: Any) -> QdrantIdentitySearchStage:
@@ -161,8 +156,6 @@ def build_qdrant_identity_search(cfg: Any) -> QdrantIdentitySearchStage:
             api_key=cfg.qdrant.api_key,
             collection=cfg.qdrant.collection,
             bucket_name=cfg.bucket_name,
-            distance_mode=cfg.distance_mode,
-            cosine_threshold=cfg.cosine_threshold,
-            l2_threshold=cfg.l2_threshold,
+            match_threshold=cfg.match_threshold,
         )
     )

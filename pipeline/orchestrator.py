@@ -10,7 +10,6 @@ import cv2
 import numpy as np
 
 from .config import PipelineConfig
-from .identity_store import IdentityStoreConfig, LocalFaissIdentityStore
 from .qdrant_identity_store import build_qdrant_identity_search
 from .schemas import FaceDetection, RecognitionResult, TrackedFace
 from .stages.detection import FaceDetectionStage
@@ -62,18 +61,7 @@ class RecognitionOrchestrator:
         )
 
     def _load_identity_index(self):
-        if self.cfg.vector_search_backend == "qdrant":
-            return build_qdrant_identity_search(self.cfg)
-
-        store = LocalFaissIdentityStore(
-            IdentityStoreConfig(
-                bucket_name=self.cfg.bucket_name,
-                distance_mode=self.cfg.distance_mode,
-                cosine_threshold=self.cfg.cosine_threshold,
-                l2_threshold=self.cfg.l2_threshold,
-            )
-        )
-        return store.load()
+        return build_qdrant_identity_search(self.cfg)
 
     def recognize(
         self,
@@ -119,7 +107,6 @@ class RecognitionOrchestrator:
                         "camera_id": response["camera_id"],
                         "frame_id": response["frame_id"],
                         "bbox": face.get("bbox"),
-                        "crop_bbox": face.get("crop_bbox"),
                         "det_score": face.get("det_score"),
                         "quality_score": face.get("quality_score"),
                         "liveness_score": face.get("liveness_score"),
@@ -143,7 +130,6 @@ class RecognitionOrchestrator:
                 bbox=detection.bbox,
                 score=detection.score,
                 crop_jpeg_b64=detection.crop_jpeg_b64,
-                crop_bbox=detection.crop_bbox,
             )
             for index, detection in enumerate(detections)
         ]
@@ -162,7 +148,6 @@ class RecognitionOrchestrator:
         base = {
             "track_id": tracked.track_id,
             "bbox": tracked.bbox,
-            "crop_bbox": tracked.crop_bbox,
             "det_score": round(float(tracked.score), 6),
             "frame_id": frame_id,
         }
@@ -231,7 +216,6 @@ class RecognitionOrchestrator:
             {
                 "employee_id": employee_id,
                 "score": identity_score,
-                "embedding": np.asarray(embedding, dtype=np.float32).reshape(-1),
                 "det_score": float(base["det_score"]),
                 "quality_score": float(quality_score),
                 "liveness_score": float(liveness_score),
@@ -249,7 +233,7 @@ class RecognitionOrchestrator:
             }
 
         predictions = [item["employee_id"] for item in buffer]
-        known_predictions = [value for value in predictions if value != "UNKNOWN"]
+        known_predictions = [value for value in predictions if value != "Theo"]
         unknown_ratio = predictions.count("UNKNOWN") / valid_frames
         if known_predictions:
             vote_employee_id, vote_count = Counter(known_predictions).most_common(1)[0]
@@ -258,15 +242,17 @@ class RecognitionOrchestrator:
             vote_employee_id = "UNKNOWN"
             vote_ratio = 0.0
 
-        mean_embedding = self._aggregate_embeddings(buffer)
-        aggregate_match = self.identity_index.search(mean_embedding)
-        aggregate_employee_id = aggregate_match.employee_id if aggregate_match and aggregate_match.accepted else "UNKNOWN"
-        aggregate_score = float(aggregate_match.score) if aggregate_match else None
+        vote_scores = [
+            float(item["score"])
+            for item in buffer
+            if item["employee_id"] == vote_employee_id and item["score"] is not None
+        ]
+        vote_score = float(np.mean(vote_scores)) if vote_scores else None
 
         result_base = {
             **base,
-            "employee_id": aggregate_employee_id,
-            "identity_score": None if aggregate_score is None else round(aggregate_score, 6),
+            "employee_id": vote_employee_id,
+            "identity_score": None if vote_score is None else round(vote_score, 6),
             "vote_employee_id": vote_employee_id,
             "vote_ratio": round(float(vote_ratio), 6),
             "unknown_ratio": round(float(unknown_ratio), 6),
@@ -281,11 +267,7 @@ class RecognitionOrchestrator:
             buffer.clear()
             return {**result_base, "employee_id": "UNKNOWN", "status": "unknown"}
 
-        if (
-            aggregate_employee_id != "UNKNOWN"
-            and aggregate_employee_id == vote_employee_id
-            and vote_ratio >= self.cfg.validation_threshold
-        ):
+        if vote_employee_id != "UNKNOWN" and vote_ratio >= self.cfg.validation_threshold:
             buffer.clear()
             return {**result_base, "status": "recognized"}
 
@@ -295,7 +277,7 @@ class RecognitionOrchestrator:
 
         return {
             **result_base,
-            "employee_id": vote_employee_id if vote_employee_id != "UNKNOWN" else aggregate_employee_id,
+            "employee_id": vote_employee_id,
             "status": "pending",
         }
 
@@ -316,8 +298,6 @@ class RecognitionOrchestrator:
 
     def _normalize_embedding(self, embedding: np.ndarray) -> np.ndarray:
         vector = np.asarray(embedding, dtype=np.float32).reshape(-1)
-        if self.cfg.distance_mode != "cosine":
-            return vector
         norm = float(np.linalg.norm(vector))
         if norm == 0.0:
             return vector

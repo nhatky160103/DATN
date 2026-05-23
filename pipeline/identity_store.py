@@ -12,9 +12,7 @@ from .stages.vector_search import IdentitySearchStage
 @dataclass(frozen=True)
 class IdentityStoreConfig:
     bucket_name: str
-    distance_mode: str
-    cosine_threshold: float
-    l2_threshold: float
+    match_threshold: float
     local_root: str = "local_embeddings"
     embedding_model: str = "ms1mv3_arcface"
 
@@ -40,18 +38,12 @@ class LocalFaissIdentityStore:
     def load(self) -> IdentitySearchStage:
         embeddings, employee_ids = self._load_snapshot()
         if embeddings is None or employee_ids is None:
-            return IdentitySearchStage.build_empty(
-                self.cfg.distance_mode,
-                self.cfg.cosine_threshold,
-                self.cfg.l2_threshold,
-            )
+            return IdentitySearchStage.build_empty(self.cfg.match_threshold)
 
         return IdentitySearchStage(
             embeddings,
             employee_ids,
-            self.cfg.distance_mode,
-            self.cfg.cosine_threshold,
-            self.cfg.l2_threshold,
+            self.cfg.match_threshold,
         )
 
     def _load_snapshot(self) -> tuple[np.ndarray | None, list[str] | None]:
@@ -81,4 +73,3 @@ class LocalFaissIdentityStore:
             return None, None
 
         return embeddings, employee_ids
-

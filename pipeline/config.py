@@ -89,10 +89,7 @@ class PipelineConfig:
     qscore_threshold: float = 0.4
     anti_spoof_enabled: bool = False
     anti_spoof_threshold: float = 0.9
-    distance_mode: str = "cosine"
-    l2_threshold: float = 27.5
-    cosine_threshold: float = 0.78
-    vector_search_backend: str = "qdrant"
+    match_threshold: float = 0.78
     redis: RedisConfig = RedisConfig()
     database: DatabaseConfig = DatabaseConfig()
     qdrant: QdrantConfig = QdrantConfig()
@@ -170,7 +167,7 @@ def load_pipeline_config(path: str | Path = "config.yaml") -> PipelineConfig:
     )
     qdrant_collection = os.getenv(
         "QDRANT_COLLECTION",
-        identity.get("collection", qdrant.get("collection", QdrantConfig.collection)),
+        qdrant.get("collection", identity.get("collection", QdrantConfig.collection)),
     )
     qdrant_cfg = QdrantConfig(
         url=os.getenv("QDRANT_URL", qdrant.get("url", QdrantConfig.url)),
@@ -224,12 +221,11 @@ def load_pipeline_config(path: str | Path = "config.yaml") -> PipelineConfig:
         qscore_threshold=float(infer_video.get("qscore_threshold", PipelineConfig.qscore_threshold)),
         anti_spoof_enabled=_as_bool(infer_video.get("is_anti_spoof", PipelineConfig.anti_spoof_enabled)),
         anti_spoof_threshold=float(infer_video.get("anti_spoof_threshold", PipelineConfig.anti_spoof_threshold)),
-        distance_mode=identity.get("distance_mode", PipelineConfig.distance_mode),
-        l2_threshold=float(identity.get("l2_threshold", PipelineConfig.l2_threshold)),
-        cosine_threshold=float(identity.get("cosine_threshold", PipelineConfig.cosine_threshold)),
-        vector_search_backend=os.getenv(
-            "VECTOR_SEARCH_BACKEND",
-            identity.get("backend", PipelineConfig.vector_search_backend),
+        match_threshold=float(
+            qdrant.get(
+                "match_threshold",
+                identity.get("match_threshold", PipelineConfig.match_threshold),
+            )
         ),
         redis=redis_cfg,
         database=database_cfg,

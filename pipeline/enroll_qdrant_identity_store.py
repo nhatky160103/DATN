@@ -64,9 +64,7 @@ def enroll_dataset(config_path: str, dataset_root: str, min_quality: float | Non
             api_key=cfg.qdrant.api_key,
             collection=cfg.qdrant.collection,
             bucket_name=cfg.bucket_name,
-            distance_mode=cfg.distance_mode,
-            cosine_threshold=cfg.cosine_threshold,
-            l2_threshold=cfg.l2_threshold,
+            match_threshold=cfg.match_threshold,
         )
     )
 
@@ -122,7 +120,6 @@ def enroll_dataset(config_path: str, dataset_root: str, min_quality: float | Non
                         "det_score": float(detection.score),
                         "quality_score": float(quality_score),
                         "bbox": detection.bbox,
-                        "crop_bbox": detection.crop_bbox,
                         "model_name": cfg.triton.arcface_model,
                         "model_version": "arcface",
                         "active": True,
