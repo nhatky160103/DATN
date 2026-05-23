@@ -1,0 +1,125 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../database/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  triton:
+    image: nvcr.io/nvidia/tritonserver:24.12-py3
+    restart: unless-stopped
+    command: >
+      tritonserver
+      --model-repository=/models
+      --strict-model-config=true
+      --log-info=true
+    volumes:
+      - ../triton_model_repository:/models:ro
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+
+  frame-reader:
+    build:
+      context: ..
+      dockerfile: Dockerfile.cpu
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    command: python -m pipeline.frame_reader --config config.yaml --all-enabled
+    depends_on:
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - ../config.yaml:/app/config.yaml:ro
+
+  worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile.cpu
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    command: python -m pipeline.worker --config config.yaml
+    depends_on:
+      - redis
+      - triton
+      - qdrant
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL}
+      VECTOR_SEARCH_BACKEND: qdrant
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT_COLLECTION: face_embeddings
+      TRITON_URL: triton:8000
+      TRITON_ENABLED: "true"
+      BUCKET_NAME: ${BUCKET_NAME:-Hust}
+      REDIS_CONSUMER_GROUP: attendance-workers
+      REDIS_CONSUMER_NAME: worker-01
+    volumes:
+      - ..:/app
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile.cpu
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    command: gunicorn -b 0.0.0.0:5000 pipeline.api:app
+    depends_on:
+      - redis
+      - worker
+      - qdrant
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL}
+      VECTOR_SEARCH_BACKEND: qdrant
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT_COLLECTION: face_embeddings
+      BUCKET_NAME: ${BUCKET_NAME:-Hust}
+    volumes:
+      - ..:/app
+    ports:
+      - "5000:5000"
+
+volumes:
+  postgres-data:
+  qdrant-data:

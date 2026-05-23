@@ -1,241 +1,187 @@
-# Deep Learning-Based Face Recognition for Attendance System
+# Deep Learning-Based Face Recognition Attendance Platform
 
 <div align="center">
 
 ![Project Status](https://img.shields.io/badge/status-active-success.svg)
-![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+![Docker](https://img.shields.io/badge/runtime-docker%20compose-2496ED.svg)
+![Triton](https://img.shields.io/badge/inference-NVIDIA%20Triton-76B900.svg)
+![Qdrant](https://img.shields.io/badge/vector%20search-Qdrant-DC244C.svg)
 
-**An optimized deep learning system for face recognition-based attendance management with anti-spoofing capabilities**
+**A production-oriented face recognition attendance platform with realtime camera ingestion, AI inference, vector search, event storage, and an Admin Dashboard.**
 
-[📖 Documentation](#documentation) • [🚀 Quick Start](docs/installation.md) • [📊 Results](docs/results.md) • [🎯 Features](#key-features)
+[Documentation](docs/) • [Architecture](docs/architecture.md) • [Installation](docs/installation.md) • [Usage](docs/usage.md) • [Operations](docs/operations.md) • [Research Results](docs/results.md)
 
 </div>
 
 ---
 
-## 📋 Table of Contents
+## Overview
 
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [System Architecture](#system-architecture)
-- [Performance Highlights](#performance-highlights)
-- [Documentation](#documentation)
-- [Quick Start](#quick-start)
-- [Project Structure](#project-structure)
-- [Citation](#citation)
-- [Contact](#contact)
+This project builds an end-to-end attendance system based on face recognition. It continuously reads frames from cameras, detects and validates faces, extracts ArcFace embeddings, searches identities in Qdrant, stores attendance events, and exposes a web dashboard for system administration.
 
-## 🎯 Overview
-
-This project presents a **comprehensive face recognition-based attendance system** designed to address the limitations of traditional manual attendance methods and existing facial recognition systems. The system combines state-of-the-art deep learning models to provide accurate, real-time face recognition with robust anti-spoofing capabilities.
-
-The solution integrates multiple deep learning components into a complete pipeline that includes:
-- **Face detection and alignment** using MTCNN and BlazeFace
-- **Anti-spoofing detection** with FASNet/MiniFASNet to prevent presentation attacks
-- **Face quality assessment** using LightQNet for optimal image selection
-- **Feature extraction** with custom-trained models using the proposed CDML loss function
-- **Real-time database integration** with Firebase for attendance management
+The platform is designed around independent services so that camera ingestion, AI inference, vector search, storage, and administration can be operated and debugged separately.
 
 **Author:** Dinh Nhat Ky  
-**Supervisor:** MSc. Le Duc Trung  
 **Institution:** School of Information and Communication Technology, Hanoi University of Science and Technology
 
-## 🌟 Key Features
+## Core Capabilities
 
-✨ **Advanced Recognition**
-- Custom **Combined Dynamic Margin Loss (CDML)** for improved feature discrimination
-- Lightweight **IResNet_Lite** architectures (r18/r50/r100_lite) optimized for resource-constrained devices
-- Achieves **99.85% accuracy** on LFW and **98.94%** on CFP-FP benchmarks
+- Multi-camera RTSP/webcam ingestion.
+- PostgreSQL camera registry and attendance event storage.
+- Redis Streams for frame buffering and realtime result delivery.
+- Triton-served AI models for detection, quality, liveness, and embedding.
+- Qdrant vector search for identity recognition.
+- Track-level multi-frame validation to reduce unstable single-frame decisions.
+- Admin Dashboard for cameras, identities, thresholds, and system status.
+- Docker Compose runtime for reproducible local/server deployment.
 
-🛡️ **Anti-Spoofing Protection**
-- Real-time detection of presentation attacks (printed photos, video replay, masks)
-- Multi-model integration for robust liveness detection
-
-⚡ **High Performance**
-- Fast inference speed: **16.82ms/image** for R18_lite on CPU
-- Up to **70% reduction** in model parameters compared to standard architectures
-- Real-time processing capability for production deployment
-
-🔧 **Flexible System**
-- Configurable pipeline components
-- Firebase Realtime Database integration
-- Cloudinary storage for embeddings and images
-- User-friendly management interface
-
-## 🏗️ System Architecture
-
-The system implements a complete processing pipeline for face recognition-based attendance:
+## System Overview
 
 ```mermaid
-flowchart TD
-    A[Camera Input] --> B[Frame Capture]
-    B --> C{Face Detection<br/>BlazeFace}
-    C -->|No Face| B
-    C -->|Face Detected| D[Face Quality Check<br/>LightQNet]
-    D -->|Low Quality| B
-    D -->|Good Quality| E[Anti-Spoofing<br/>FASNet/MiniFASNet]
-    E -->|Spoof Detected| F[Reject]
-    E -->|Live Face| G[Face Alignment<br/>MTCNN]
-    G --> H[Feature Extraction<br/>IResNet + CDML]
-    H --> I[Embedding Matching<br/>Cosine Similarity]
-    I --> J{Match Found?}
-    J -->|Yes| K[Record Attendance]
-    J -->|No| L[Unknown Person]
-    K --> M[Update Firebase]
-    M --> N[Save to Cloudinary]
-    
-    style A fill:#e1f5ff
-    style K fill:#d4edda
-    style F fill:#f8d7da
-    style L fill:#fff3cd
+flowchart LR
+    CamerasInput[RTSP / Webcam Sources] --> Reader[frame-reader\ncamera sampling]
+    CameraDB[(PostgreSQL\ncamera registry)] --> Reader
+    Config[config.yaml\nruntime thresholds] --> Reader
+
+    Reader --> FrameStream[(Redis Stream\nattendance:frames)]
+    FrameStream --> Worker[worker\nrecognition orchestrator]
+    Config --> Worker
+
+    Worker --> Triton[Triton Inference Server]
+    Triton --> Models[UltraLight + LightQNet + MiniFASNet + ArcFace]
+    Worker --> Qdrant[(Qdrant\nidentity embeddings)]
+    Worker --> EventDB[(PostgreSQL\nattendance_events)]
+    Worker --> ResultStream[(Redis Stream\nattendance:results)]
+
+    Dashboard[Admin Dashboard] --> API[Flask API]
+    API --> CameraDB
+    API --> EventDB
+    API --> Qdrant
+    API --> ResultStream
+
+    classDef service fill:#e8f1ff,stroke:#4c78a8,color:#102a43;
+    classDef storage fill:#f4f7ec,stroke:#6b8e23,color:#1f2d16;
+    classDef queue fill:#fff4df,stroke:#c27c0e,color:#2b1b00;
+    classDef model fill:#f2e8ff,stroke:#7b61a8,color:#241137;
+    class CamerasInput,Reader,Worker,Triton,API,Dashboard,Config service;
+    class CameraDB,Qdrant,EventDB storage;
+    class FrameStream,ResultStream queue;
+    class Models model;
 ```
 
-### Pipeline Components
+## Recognition Pipeline
 
-The system consists of seven main stages:
+```mermaid
+flowchart LR
+    Frame[Camera frame] --> Sample[Sample + rotate + JPEG encode]
+    Sample --> Queue[Redis frame stream]
+    Queue --> Detect[Face detection\nUltraLight]
+    Detect --> Crop[Expanded face crop]
+    Crop --> Track[Tracking\nByteTrack]
+    Track --> Quality[Quality scoring\nLightQNet]
+    Quality --> Live[Liveness check\nMiniFASNet]
+    Live --> Embed[Face embedding\nArcFace 512-d]
+    Embed --> Search[Identity search\nQdrant top-k cosine]
+    Search --> Aggregate[Multi-frame track aggregation]
+    Aggregate --> Result[Recognition result\nrecognized / unknown / pending / rejected]
+    Result --> Store[PostgreSQL events]
+    Result --> Stream[Redis result stream]
+    Stream --> Dashboard[Admin Dashboard]
+```
 
-1. **Frame Collection** - Capture frames from webcam with quality validation
-2. **Anti-Spoofing** - Detect presentation attacks using FASNet/MiniFASNet
-3. **Quality Assessment** - Evaluate face quality (angle, lighting, sharpness) with LightQNet
-4. **Face Detection** - Accurate face localization and landmark detection using MTCNN
-5. **Feature Extraction** - Generate 512-dimensional embeddings with trained IResNet models
-6. **Identity Matching** - Compare embeddings using cosine similarity or Euclidean distance
-7. **Attendance Recording** - Store results in Firebase with image backup on Cloudinary
+## Tech Stack
 
-For detailed architecture information, see [Architecture Documentation](docs/architecture.md).
+| Layer | Technology |
+| --- | --- |
+| Runtime | Docker Compose |
+| API/Dashboard | Flask, Gunicorn |
+| Camera input | RTSP / webcam |
+| Camera ingestion | OpenCV VideoCapture / optional GStreamer |
+| Queue | Redis Streams |
+| Database | PostgreSQL |
+| Vector search | Qdrant |
+| Model serving | NVIDIA Triton Inference Server |
+| Detection | Ultra-Light Face Detector |
+| Tracking | ByteTrack |
+| Quality | LightQNet |
+| Liveness | MiniFASNet |
+| Embedding | ArcFace-compatible ONNX model |
 
-## 📊 Performance Highlights
-
-### Model Accuracy
-
-| Dataset | r50_lite | r100_lite | CDML (R100) |
-|---------|----------|-----------|-------------|
-| **LFW** | 99.47% | 99.67% | **99.85%** |
-| **CFP-FP** | 92.87% | 92.83% | **98.94%** |
-| **AgeDB-30** | 96.35% | 95.95% | 97.75% |
-| **CPLFW** | 88.83% | 89.08% | **94.08%** |
-
-### Inference Speed
-
-| Model | Parameters | Size (MB) | Inference Time (ms/image) | GFLOPs |
-|-------|-----------|-----------|---------------------------|--------|
-| R18 | 24.0M | 91.65 | 46.40 | 2.63 |
-| **R18_lite** | **9.2M** | **35.70** | **16.82** | **0.67** |
-| R100 | 65.2M | 248.55 | 194.91 | 12.13 |
-| **R100_lite** | **19.5M** | **74.47** | **79.10** | **3.05** |
-
-> 💡 The lite models achieve up to **70% parameter reduction** and **2.76x faster inference** while maintaining competitive accuracy.
-
-For comprehensive results and analysis, see [Results Documentation](docs/results.md).
-
-## 📚 Documentation
-
-Detailed documentation is organized into the following sections:
-
-| Document | Description |
-|----------|-------------|
-| [🏗️ Architecture](docs/architecture.md) | System design, pipeline flow, and component details |
-| [🎓 Training](docs/training.md) | Model training methodology, CDML loss, and datasets |
-| [📊 Results](docs/results.md) | Comprehensive experimental results and benchmarks |
-| [⚙️ Installation](docs/installation.md) | Setup guide, requirements, and configuration |
-| [💻 Usage Guide](docs/usage.md) | User interface, features, and API usage |
-| [🔮 Future Work](docs/future-work.md) | Roadmap and planned improvements |
-| [📖 References](docs/references.md) | Bibliography and citations |
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.8+
-- CUDA-capable GPU (recommended) or CPU
-- Webcam for real-time recognition
-
-### Installation
+## Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/DATN.git
-cd DATN
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Download pre-trained models
-# See docs/installation.md for detailed instructions
+cp .env.example .env
+docker compose --profile pipeline up -d --build
 ```
 
-### Basic Usage
+Open the Admin Dashboard:
 
-```python
-# Run the attendance system
-python main.py --config config.yaml
-
-# Access the web interface
-# Navigate to http://localhost:5000
+```text
+http://localhost:5000
 ```
 
-For detailed installation and usage instructions, see the [Installation Guide](docs/installation.md) and [Usage Guide](docs/usage.md).
+Enroll identities:
 
-## 📁 Project Structure
-
+```bash
+docker compose --profile pipeline run --rm worker \
+  python -m pipeline.enroll_qdrant_identity_store \
+  --config config.yaml \
+  --dataset-root FacenetDataset
 ```
+
+Check status:
+
+```bash
+curl http://localhost:5000/health
+curl http://localhost:5000/system/status
+curl "http://localhost:5000/results/recent?count=20"
+```
+
+## Documentation
+
+| Document | Purpose |
+| --- | --- |
+| [Architecture](docs/architecture.md) | Detailed service architecture, data contracts, storage model, and diagrams |
+| [Installation](docs/installation.md) | Environment setup, Docker Compose startup, and model checks |
+| [Usage](docs/usage.md) | Dashboard usage, camera management, identity enrollment, API examples |
+| [Operations](docs/operations.md) | Logs, health checks, Redis/PostgreSQL/Qdrant/Triton debug commands |
+| [Triton Models](triton_model_repository/README.md) | Triton model repository layout and model input/output contracts |
+| [Training](docs/training.md) | ArcFace/CDML training direction and production export path |
+| [Results](docs/results.md) | Research accuracy, latency, threshold, and error analysis |
+| [References](docs/references.md) | Bibliography and related work |
+| [Future Work](docs/future-work.md) | Production and model roadmap |
+
+## Repository Structure
+
+```text
 DATN/
-├── models/                      # Model implementations
-│   ├── Recognition/            # Face recognition models
-│   ├── Detection/              # Face detection models
-│   ├── LightQNet/             # Face quality assessment
-│   └── Anti_spoof/            # Anti-spoofing models
-├── data/                       # Training and test data
-├── database/                   # Database handlers
-├── interface/                  # User interface
-├── infer/                      # Inference code
-├── eval_system/               # Evaluation scripts
-├── docs/                       # Documentation
-├── config.yaml                # System configuration
-└── README.md                  # This file
+├── config.yaml
+├── docker-compose.yml
+├── database/
+│   └── init/
+├── docs/
+├── FacenetDataset/
+├── models/
+├── pipeline/
+│   ├── api.py
+│   ├── frame_reader.py
+│   ├── worker.py
+│   ├── orchestrator.py
+│   ├── qdrant_identity_store.py
+│   └── stages/
+├── scripts/
+└── triton_model_repository/
 ```
 
-## 📄 Citation
-
-If you use this work in your research, please cite:
+## Citation
 
 ```bibtex
 @mastersthesis{dinh2026facerecognition,
-  title={Building an Optimized Deep Learning Model for Face Recognition in Corporate Attendance Systems},
-  author={Dinh, Nhat Ky},
-  year={2026},
-  school={Hanoi University of Science and Technology},
-  department={School of Information and Communication Technology}
+  title  = {Building an Optimized Deep Learning Model for Face Recognition in Corporate Attendance Systems},
+  author = {Dinh, Nhat Ky},
+  year   = {2026},
+  school = {Hanoi University of Science and Technology},
+  note   = {School of Information and Communication Technology}
 }
 ```
-
-## 📧 Contact
-
-**Dinh Nhat Ky**  
-📧 Email: Ky.dn215410@sis.hust.edu.vn  
-🎓 Institution: Hanoi University of Science and Technology
-
-**Supervisor: MSc. Le Duc Trung**
-
----
-
-## 🔗 Resources
-
-- [📦 Dataset & Model Weights](https://husteduvn-my.sharepoint.com/:f:/g/personal/ky_dn215410_sis_hust_edu_vn/Etlu7CZEWr5Ao1owHA9pOk0B-wwess_BZfVLEbZTcaWSvw?e=gVMQTf)
-- [📖 Full Documentation](docs/)
-- [🐛 Report Issues](https://github.com/yourusername/DATN/issues)
-
-## 📜 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-<div align="center">
-
-**⭐ If you find this project useful, please consider giving it a star! ⭐**
-
-Made with ❤️ by Dinh Nhat Ky
-
-</div>

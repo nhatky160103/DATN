@@ -1,0 +1,28 @@
+name: "fasnet_v1se"
+platform: "onnxruntime_onnx"
+default_model_filename: "4_0_0_80x80_MiniFASNetV1SE.onnx"
+max_batch_size: 16
+input [
+  {
+    name: "input"
+    data_type: TYPE_FP32
+    dims: [3, 80, 80]
+  }
+]
+output [
+  {
+    name: "logits"
+    data_type: TYPE_FP32
+    dims: [3]
+  }
+]
+instance_group [
+  {
+    kind: KIND_CPU
+    count: 1
+  }
+]
+dynamic_batching {
+  preferred_batch_size: [4, 8, 16]
+  max_queue_delay_microseconds: 1000
+}

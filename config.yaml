@@ -1,18 +1,58 @@
- 
 infer_video:
-  min_face_area: 0.1
+  use_voting: true
+  min_face_area: 0.02
   bbox_threshold: 0.7
   required_images: 4
+  max_track_buffer: 10
   validation_threshold: 0.7
-  is_anti_spoof: False
+  is_anti_spoof: false
   anti_spoof_threshold: 0.9
-  qscore_threshold: 0.4
-
-identity_person:
-  l2_threshold: 27.5
-  cosine_threshold: 0.78
-  distance_mode: 'cosine'
-  qscore_collect_threshold: 0.5
-  image_per_class: 2
-  
-
+  qscore_threshold: 0.2
+qdrant:
+  url: http://qdrant:6333
+  api_key: ''
+  collection: face_embeddings
+  match_threshold: 0.4
+detection:
+  input_width: 640
+  input_height: 480
+  iou_threshold: 0.4
+  crop_margin: 0.25
+  crop_margin_x: 0.1
+  crop_margin_y: 0.15
+tracking:
+  track_thresh: 0.6
+  match_thresh: 0.8
+  track_buffer: 30
+  frame_rate: 30
+pipeline:
+  bucket_name: Hust
+database:
+  url: postgresql://camera_app:camera_app_dev_password@postgres:5432/camera_db
+  camera_poll_interval_sec: 10
+cameras:
+- id: camera-01
+  name: Main camera
+  source: rtsp://user:password@camera-ip:554/stream1
+  enabled: true
+  rotate: 90
+  sample_interval_ms: 500
+  jpeg_quality: 85
+  reconnect_delay_sec: 3
+redis:
+  url: redis://redis:6379/0
+  frame_queue: attendance:frames
+  result_queue: attendance:results
+  max_queue_size: 128
+  consumer_group: attendance-workers
+  consumer_name: worker-01
+  stream_block_ms: 1000
+triton:
+  enabled: true
+  url: triton:8000
+  detector_model: ultralight
+  arcface_model: arcface
+  quality_model: lightqnet
+  fasnet_v1_model: fasnet_v1se
+  fasnet_v2_model: fasnet_v2
+  timeout_sec: 5

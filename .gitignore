@@ -25,7 +25,6 @@ checkpoints/
 *.json
 *.pickle
 *.pkl
-
 logs/
 *.log
 
@@ -34,4 +33,4 @@ dataset/
 data/
 local_embeddings/
 voxceleb_resnet221_LM/
-
+asset/

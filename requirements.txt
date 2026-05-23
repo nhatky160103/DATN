@@ -1,0 +1,15 @@
+Cython
+cython-bbox
+faiss-cpu
+flask
+gunicorn
+lap
+numpy
+opencv-python-headless
+psycopg[binary]
+PyGObject==3.42.2
+pyyaml
+qdrant-client
+redis
+scipy
+tritonclient[http]
