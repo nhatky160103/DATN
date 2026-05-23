@@ -1,130 +1,174 @@
-# Deploy on GCP CPU VM with Triton
+# Deploy on a CPU VM
 
-This deployment matches the production flow without the old Flask dashboard and without Cloudinary:
+This guide describes a CPU-oriented deployment for the current Docker Compose runtime.
 
-`RTSP Camera -> frame-reader -> Redis -> worker AI stages -> Triton -> FAISS -> Firebase -> response API`
+## Runtime Stack
 
-## 1. Create VM
+```mermaid
+flowchart LR
+    Camera[RTSP Camera] --> Reader[frame-reader]
+    Reader --> Redis[(Redis Streams)]
+    Redis --> Worker[worker]
+    Worker --> Triton[Triton CPU Inference]
+    Worker --> Qdrant[(Qdrant)]
+    Worker --> Postgres[(PostgreSQL)]
+    API[Admin Dashboard/API] --> Postgres
+    API --> Qdrant
+```
 
-Use an Ubuntu 22.04 CPU VM. Start with at least `e2-standard-4` and 30GB disk; use a larger machine if ArcFace/FASNet CPU latency is too high.
+## Recommended VM
 
-Open firewall ports only as needed:
+Minimum for functional testing:
 
-- `5000/tcp` for the response API.
-- `8000/tcp` only if Triton HTTP must be reachable outside the VM. Keep it private when possible.
+- 4 vCPU
+- 16 GB RAM
+- 50 GB disk
 
-## 2. Install Docker
+Recommended for multiple cameras:
+
+- 8+ vCPU
+- 32 GB RAM
+- SSD disk
+
+Open only the ports you need:
+
+| Port | Service | Exposure |
+| --- | --- | --- |
+| `5000` | Admin Dashboard/API | Private network, VPN, or reverse proxy |
+| `8000` | Triton HTTP | Private only |
+| `6333` | Qdrant HTTP | Private only |
+| `5432` | PostgreSQL | Private only |
+| `6379` | Redis | Private only |
+
+## Install Docker
+
+Ubuntu example:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl docker.io docker-compose-plugin
-sudo usermod -aG docker $USER
+sudo usermod -aG docker "$USER"
 newgrp docker
 ```
 
-## 3. Configure secrets and camera
+## Configure Environment
 
-Create `.env` in the repo root:
+Create `.env`:
 
 ```bash
-CAMERA_SOURCE=rtsp://user:password@camera-ip:554/stream1
+cp .env.example .env
+```
+
+Set production credentials:
+
+```dotenv
+POSTGRES_DB=camera_db
+POSTGRES_USER=camera_app
+POSTGRES_PASSWORD=change_this_password
+DATABASE_URL=postgresql://camera_app:change_this_password@postgres:5432/camera_db
 BUCKET_NAME=Hust
+QDRANT_API_KEY=
 ```
 
-Place the Firebase service account at `database/ServiceAccountKey.json`. Do not commit it.
+## Prepare Models
 
-Employee identity rule:
-
-```text
-Firebase key:      {BUCKET_NAME}/Employees/{employee_id}
-Event log:         {BUCKET_NAME}/RecognitionEvents/{event_id}
-FAISS vector row:  local_embeddings/{BUCKET_NAME}/*_employee_ids.pkl[row] == employee_id
-Dataset folder:    dataset-root/{employee_id}/*.jpg
-```
-
-Build the local identity store:
+Verify:
 
 ```bash
-python -m pipeline.enroll_identity_store \
-  --bucket "$BUCKET_NAME" \
-  --dataset-root data/employees
+find triton_model_repository -maxdepth 3 -type f | sort
 ```
 
-## 4. Prepare Triton model repository
+Expected model files are documented in [../triton_model_repository/README.md](../triton_model_repository/README.md).
 
-Export/copy model files into:
-
-```text
-triton_model_repository/
-  arcface/1/model.onnx
-  lightqnet/1/model.graphdef
-  fasnet_v1se/1/model.onnx
-  fasnet_v2/1/model.onnx
-```
-
-ArcFace export:
+## Start Services
 
 ```bash
-python -m models.Arcface.export_onnx \
-  --weights models/Arcface/weights/backbone.pth \
-  --network r18 \
-  --output triton_model_repository/arcface/1/model.onnx
+docker compose --profile pipeline up -d --build
 ```
 
-LightQNet is already a frozen TensorFlow graph in `models/lightqnet/lightqnet-dm050.pb`; copy it to `triton_model_repository/lightqnet/1/model.graphdef`.
-
-FASNet exports:
+Check:
 
 ```bash
-python -m models.Anti_spoof.export_onnx \
-  --model-type v1se \
-  --weights models/Anti_spoof/weights/4_0_0_80x80_MiniFASNetV1SE.pth \
-  --output triton_model_repository/fasnet_v1se/1/model.onnx
-
-python -m models.Anti_spoof.export_onnx \
-  --model-type v2 \
-  --weights models/Anti_spoof/weights/2.7_80x80_MiniFASNetV2.pth \
-  --output triton_model_repository/fasnet_v2/1/model.onnx
-```
-
-If model files are missing, keep the affected Triton model disabled at the pipeline level, for example `infer_video.is_anti_spoof=false` for FASNet. Runtime inference is served by Triton ONNX models only.
-
-Smoke test artifacts before starting the full pipeline:
-
-```bash
-python -m models.test_model_inference --skip-mtcnn
-```
-
-Smoke test Triton after `triton` is running:
-
-```bash
-python -m models.test_model_inference --triton-url localhost:8000 --skip-mtcnn
-```
-
-## 5. Start services
-
-```bash
-docker compose -f deploy/docker-compose.cpu.yml up -d --build
-docker compose -f deploy/docker-compose.cpu.yml ps
-```
-
-Check logs:
-
-```bash
-docker compose -f deploy/docker-compose.cpu.yml logs -f triton
-docker compose -f deploy/docker-compose.cpu.yml logs -f worker
-docker compose -f deploy/docker-compose.cpu.yml logs -f frame-reader
-```
-
-Headless result API:
-
-```text
-http://VM_EXTERNAL_IP:5000
-```
-
-API health:
-
-```bash
-curl http://localhost:5000/results/latest
+docker compose --profile pipeline ps
+curl http://localhost:5000/health
 curl http://localhost:8000/v2/health/ready
+curl http://localhost:6333/collections
 ```
+
+## Register Cameras
+
+Use the dashboard:
+
+```text
+http://VM_PRIVATE_OR_PUBLIC_IP:5000
+```
+
+Or CLI:
+
+```bash
+docker compose --profile pipeline run --rm worker \
+  python -m scripts.register_camera \
+  --id camera-01 \
+  --name "Main entrance" \
+  --source "rtsp://user:password@camera-host:554/stream1"
+```
+
+## Enroll Identities
+
+Copy the dataset to the server:
+
+```text
+FacenetDataset/
+  employee_id_1/*.jpg
+  employee_id_2/*.jpg
+```
+
+Run:
+
+```bash
+docker compose --profile pipeline run --rm worker \
+  python -m pipeline.enroll_qdrant_identity_store \
+  --config config.yaml \
+  --dataset-root FacenetDataset
+```
+
+## Operational Checks
+
+Logs:
+
+```bash
+docker compose logs -f frame-reader
+docker compose logs -f worker
+docker compose logs -f api
+```
+
+Recent events:
+
+```bash
+docker compose exec postgres psql \
+  "postgresql://camera_app:change_this_password@localhost:5432/camera_db" \
+  -c "SELECT occurred_at, camera_id, employee_id, status, quality_score, score FROM attendance_events ORDER BY occurred_at DESC LIMIT 20;"
+```
+
+Qdrant collection:
+
+```bash
+curl http://localhost:6333/collections/face_embeddings
+```
+
+Redis queue:
+
+```bash
+docker compose exec redis redis-cli XINFO GROUPS attendance:frames
+```
+
+## Production Hardening
+
+- Put the dashboard behind a reverse proxy with TLS.
+- Add authentication before exposing the dashboard.
+- Keep PostgreSQL, Redis, Qdrant, and Triton on private networking.
+- Back up Docker volumes:
+  - `postgres-data`
+  - `qdrant-data`
+- Monitor disk usage and container restarts.
+-- Pin Docker image versions before final production release.
