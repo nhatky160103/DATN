@@ -141,7 +141,6 @@ class FaceDetectionStage:
                     bbox=[crop_x1, crop_y1, crop_x2, crop_y2],
                     score=float(score),
                     crop_jpeg_b64=base64.b64encode(encoded.tobytes()).decode("ascii"),
-                    crop_bbox=[crop_x1, crop_y1, crop_x2, crop_y2],
                 )
             )
         return detections

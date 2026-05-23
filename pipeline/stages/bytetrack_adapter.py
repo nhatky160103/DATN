@@ -56,20 +56,21 @@ class FaceTrackingStage:
         output: list[TrackedFace] = []
 
         for track in tracks:
-            bbox = np.asarray(track.tlbr, dtype=np.float32)
+            track_bbox = np.asarray(track.tlbr, dtype=np.float32)
+            bbox = [int(round(value)) for value in track_bbox.tolist()]
+            score = float(track.score)
             crop_jpeg_b64 = ""
-            crop_bbox = None
             if det_boxes:
-                best_index = int(np.argmax([_iou(bbox, det_box) for det_box in det_boxes]))
+                best_index = int(np.argmax([_iou(track_bbox, det_box) for det_box in det_boxes]))
+                bbox = detections[best_index].bbox
+                score = float(detections[best_index].score)
                 crop_jpeg_b64 = detections[best_index].crop_jpeg_b64
-                crop_bbox = detections[best_index].crop_bbox
             output.append(
                 TrackedFace(
                     track_id=int(track.track_id),
-                    bbox=[int(round(value)) for value in bbox.tolist()],
-                    score=float(track.score),
+                    bbox=bbox,
+                    score=score,
                     crop_jpeg_b64=crop_jpeg_b64,
-                    crop_bbox=crop_bbox,
                 )
             )
 

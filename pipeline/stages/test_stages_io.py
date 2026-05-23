@@ -109,7 +109,7 @@ def test_tracking(detections: list[FaceDetection]) -> None:
 
 def test_vector_search(embedding: np.ndarray) -> None:
     embeddings = np.stack([embedding, np.roll(embedding, 1)], axis=0).astype(np.float32)
-    stage = IdentitySearchStage(embeddings, ["emp-1", "emp-2"], cosine_threshold=0.2)
+    stage = IdentitySearchStage(embeddings, ["emp-1", "emp-2"], match_threshold=0.2)
     match = stage.search(embedding)
     assert isinstance(match, SearchMatch)
     assert match.employee_id == "emp-1"
