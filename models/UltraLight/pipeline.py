@@ -11,7 +11,7 @@ import onnxruntime as ort
 
 # ── Cấu hình mặc định ────────────────────────────────────────────────────────
 DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), "weights", "version-slim-320.onnx")
-INPUT_SIZE = (320, 240)        # (width, height) — khớp với model slim-320
+DEFAULT_INPUT_SIZE = (320, 240)  # (width, height) fallback cho model dynamic
 CONF_THRESHOLD = 0.5           # Ngưỡng confidence để giữ detection
 IOU_THRESHOLD  = 0.4           # Ngưỡng IoU cho NMS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -74,18 +74,28 @@ class UltraLightDetector:
         )
 
         self.input_name  = self.session.get_inputs()[0].name
+        self.input_size = self._resolve_input_size()
         self.conf_threshold = conf_threshold
         self.iou_threshold  = iou_threshold
 
         # Warm-up để tránh latency ở lần inference đầu tiên
-        dummy = np.zeros((1, 3, INPUT_SIZE[1], INPUT_SIZE[0]), dtype=np.float32)
+        dummy = np.zeros((1, 3, self.input_size[1], self.input_size[0]), dtype=np.float32)
         self.session.run(None, {self.input_name: dummy})
+
+    def _resolve_input_size(self) -> tuple[int, int]:
+        shape = self.session.get_inputs()[0].shape
+        if len(shape) != 4:
+            return DEFAULT_INPUT_SIZE
+        height, width = shape[2], shape[3]
+        if isinstance(width, int) and isinstance(height, int):
+            return width, height
+        return DEFAULT_INPUT_SIZE
 
     # ── Tiền xử lý ───────────────────────────────────────────────────────────
     def _preprocess(self, image_bgr: np.ndarray) -> np.ndarray:
         """BGR HxWxC  →  float32 1xCxHxW, chuẩn hóa mean/std ImageNet."""
         img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, INPUT_SIZE)
+        img = cv2.resize(img, self.input_size)
         img = img.astype(np.float32)
 
         # Chuẩn hoá theo ImageNet mean / std
