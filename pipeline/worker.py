@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import time
 
 import cv2
 import numpy as np
@@ -22,19 +23,25 @@ class AttendancePipelineWorker:
             group=cfg.redis.consumer_group,
             consumer=cfg.redis.consumer_name,
         )
-        self.response_writer = ResponseWriter(cfg.redis.url, cfg.redis.result_queue, cfg.redis.max_queue_size)
+        self.response_writer = ResponseWriter(
+            cfg.redis.url,
+            cfg.redis.result_queue,
+            cfg.redis.max_queue_size,
+            database_url=cfg.database.url,
+        )
         self.orchestrator = RecognitionOrchestrator(cfg)
 
     def run_forever(self) -> None:
         while True:
-            message = self.frame_queue.pop(timeout_ms=self.cfg.redis.stream_block_ms)
-            if message is None:
-                continue
             try:
+                message = self.frame_queue.pop(timeout_ms=self.cfg.redis.stream_block_ms)
+                if message is None:
+                    continue
                 self.process_frame(from_json(message.payload, FrameMessage))
                 self.frame_queue.ack(message.stream_id)
             except Exception as exc:
                 print(f"Pipeline worker failed to process frame: {exc}")
+                time.sleep(1.0)
 
     def process_frame(self, message: FrameMessage) -> None:
         frame_bytes = np.frombuffer(message.image_bytes(), dtype=np.uint8)
