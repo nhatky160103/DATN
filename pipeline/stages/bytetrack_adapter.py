@@ -62,9 +62,10 @@ class FaceTrackingStage:
             crop_jpeg_b64 = ""
             if det_boxes:
                 best_index = int(np.argmax([_iou(track_bbox, det_box) for det_box in det_boxes]))
-                bbox = detections[best_index].bbox
-                score = float(detections[best_index].score)
-                crop_jpeg_b64 = detections[best_index].crop_jpeg_b64
+                detection = detections[best_index]
+                bbox = detection.bbox
+                score = float(detection.score)
+                crop_jpeg_b64 = detection.crop_jpeg_b64
             output.append(
                 TrackedFace(
                     track_id=int(track.track_id),
