@@ -1,6 +1,8 @@
-# Deep Learning-Based Face Recognition Attendance Platform
+# FARS
 
 <div align="center">
+
+**Face Attendance Recognition System**
 
 ![Project Status](https://img.shields.io/badge/status-active-success.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
@@ -8,9 +10,13 @@
 ![Triton](https://img.shields.io/badge/inference-NVIDIA%20Triton-76B900.svg)
 ![Qdrant](https://img.shields.io/badge/vector%20search-Qdrant-DC244C.svg)
 
-**A production-oriented face recognition attendance platform with realtime camera ingestion, AI inference, vector search, event storage, and an Admin Dashboard.**
+**A production-oriented face attendance recognition system with realtime camera ingestion, AI inference, vector search, event storage, and an Admin Dashboard.**
 
 [Documentation](docs/) • [Architecture](docs/architecture.md) • [Installation](docs/installation.md) • [Usage](docs/usage.md) • [Operations](docs/operations.md) • [Research Results](docs/results.md)
+
+<br/>
+
+<img src="docs/assets/FARS_logo.jpg" alt="FARS illustration" width="100%">
 
 </div>
 
@@ -18,7 +24,7 @@
 
 ## Overview
 
-This project builds an end-to-end attendance system based on face recognition. It continuously reads frames from cameras, detects and validates faces, extracts ArcFace embeddings, searches identities in Qdrant, stores attendance events, and exposes a web dashboard for system administration.
+FARS builds an end-to-end attendance system based on face recognition. It continuously reads frames from cameras, detects and validates faces, extracts ArcFace embeddings, searches identities in Qdrant, stores attendance events, and exposes a web dashboard for system administration.
 
 The platform is designed around independent services so that camera ingestion, AI inference, vector search, storage, and administration can be operated and debugged separately.
 
@@ -34,61 +40,12 @@ The platform is designed around independent services so that camera ingestion, A
 - Qdrant vector search for identity recognition.
 - Track-level multi-frame validation to reduce unstable single-frame decisions.
 - Admin Dashboard for cameras, identities, thresholds, and system status.
-- Docker Compose runtime for reproducible local/server deployment.
 
-## System Overview
+## System Architecture
 
-```mermaid
-flowchart LR
-    CamerasInput[RTSP / Webcam Sources] --> Reader[frame-reader\ncamera sampling]
-    CameraDB[(PostgreSQL\ncamera registry)] --> Reader
-    Config[config.yaml\nruntime thresholds] --> Reader
-
-    Reader --> FrameStream[(Redis Stream\nattendance:frames)]
-    FrameStream --> Worker[worker\nrecognition orchestrator]
-    Config --> Worker
-
-    Worker --> Triton[Triton Inference Server]
-    Triton --> Models[UltraLight + LightQNet + MiniFASNet + ArcFace]
-    Worker --> Qdrant[(Qdrant\nidentity embeddings)]
-    Worker --> EventDB[(PostgreSQL\nattendance_events)]
-    Worker --> ResultStream[(Redis Stream\nattendance:results)]
-
-    Dashboard[Admin Dashboard] --> API[Flask API]
-    API --> CameraDB
-    API --> EventDB
-    API --> Qdrant
-    API --> ResultStream
-
-    classDef service fill:#e8f1ff,stroke:#4c78a8,color:#102a43;
-    classDef storage fill:#f4f7ec,stroke:#6b8e23,color:#1f2d16;
-    classDef queue fill:#fff4df,stroke:#c27c0e,color:#2b1b00;
-    classDef model fill:#f2e8ff,stroke:#7b61a8,color:#241137;
-    class CamerasInput,Reader,Worker,Triton,API,Dashboard,Config service;
-    class CameraDB,Qdrant,EventDB storage;
-    class FrameStream,ResultStream queue;
-    class Models model;
-```
-
-## Recognition Pipeline
-
-```mermaid
-flowchart LR
-    Frame[Camera frame] --> Sample[Sample + rotate + JPEG encode]
-    Sample --> Queue[Redis frame stream]
-    Queue --> Detect[Face detection\nUltraLight]
-    Detect --> Crop[Expanded face crop]
-    Crop --> Track[Tracking\nByteTrack]
-    Track --> Quality[Quality scoring\nLightQNet]
-    Quality --> Live[Liveness check\nMiniFASNet]
-    Live --> Embed[Face embedding\nArcFace 512-d]
-    Embed --> Search[Identity search\nQdrant top-k cosine]
-    Search --> Aggregate[Multi-frame track aggregation]
-    Aggregate --> Result[Recognition result\nrecognized / unknown / pending / rejected]
-    Result --> Store[PostgreSQL events]
-    Result --> Stream[Redis result stream]
-    Stream --> Dashboard[Admin Dashboard]
-```
+<p align="center">
+  <img src="docs/assets/FARS_architecture.jpg" alt="FARS system architecture" width="100%">
+</p>
 
 ## Tech Stack
 
