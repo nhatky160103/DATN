@@ -18,8 +18,8 @@ detection:
   input_height: 480
   iou_threshold: 0.4
   crop_margin: 0.25
-  crop_margin_x: 0.1
-  crop_margin_y: 0.15
+  crop_margin_x: 0.25
+  crop_margin_y: 0.25
 tracking:
   track_thresh: 0.6
   match_thresh: 0.8

@@ -107,6 +107,7 @@ class RecognitionOrchestrator:
                         "camera_id": response["camera_id"],
                         "frame_id": response["frame_id"],
                         "bbox": face.get("bbox"),
+                        "quality_bbox": face.get("quality_bbox"),
                         "det_score": face.get("det_score"),
                         "quality_score": face.get("quality_score"),
                         "liveness_score": face.get("liveness_score"),
@@ -130,6 +131,9 @@ class RecognitionOrchestrator:
                 bbox=detection.bbox,
                 score=detection.score,
                 crop_jpeg_b64=detection.crop_jpeg_b64,
+                crop_bbox=detection.crop_bbox,
+                quality_crop_jpeg_b64=detection.quality_crop_jpeg_b64,
+                quality_bbox=detection.quality_bbox,
             )
             for index, detection in enumerate(detections)
         ]
@@ -148,6 +152,7 @@ class RecognitionOrchestrator:
         base = {
             "track_id": tracked.track_id,
             "bbox": tracked.bbox,
+            "quality_bbox": tracked.quality_bbox,
             "det_score": round(float(tracked.score), 6),
             "frame_id": frame_id,
         }
@@ -155,18 +160,26 @@ class RecognitionOrchestrator:
         if face_area < self.cfg.min_face_area * frame_area:
             return {**base, "status": "face_too_small"}
 
+        quality_crop_b64 = tracked.quality_crop_jpeg_b64 or tracked.crop_jpeg_b64
+        quality_face = cv2.imdecode(
+            np.frombuffer(base64.b64decode(quality_crop_b64), dtype=np.uint8),
+            cv2.IMREAD_COLOR,
+        )
+        if quality_face is None:
+            return {**base, "status": "invalid_quality_crop"}
+
         face = cv2.imdecode(np.frombuffer(base64.b64decode(tracked.crop_jpeg_b64), dtype=np.uint8), cv2.IMREAD_COLOR)
         if face is None:
             return {**base, "status": "invalid_crop"}
 
-        quality_ok, quality_score = self.quality.accept(face)
+        quality_ok, quality_score = self.quality.accept(quality_face)
         base["quality_score"] = round(float(quality_score), 6)
         if os.getenv("SAVE_QUALITY_DEBUG"):
             os.makedirs("debug_quality", exist_ok=True)
             safe_frame_id = frame_id.replace("/", "_")
             cv2.imwrite(
                 f"debug_quality/{camera_id}_{safe_frame_id}_track-{tracked.track_id}_q-{quality_score:.6f}.jpg",
-                face,
+                quality_face,
             )
         if not quality_ok:
             return {**base, "status": "quality_rejected"}

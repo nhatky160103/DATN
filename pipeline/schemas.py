@@ -33,9 +33,14 @@ class FaceDetection:
     score: float
     crop_jpeg_b64: str
     crop_bbox: list[int] | None = None
+    quality_crop_jpeg_b64: str | None = None
+    quality_bbox: list[int] | None = None
 
     def crop_bytes(self) -> bytes:
         return base64.b64decode(self.crop_jpeg_b64)
+
+    def quality_crop_bytes(self) -> bytes:
+        return base64.b64decode(self.quality_crop_jpeg_b64 or self.crop_jpeg_b64)
 
 
 @dataclass
@@ -60,6 +65,8 @@ class TrackedFace:
     score: float
     crop_jpeg_b64: str
     crop_bbox: list[int] | None = None
+    quality_crop_jpeg_b64: str | None = None
+    quality_bbox: list[int] | None = None
 
 
 @dataclass

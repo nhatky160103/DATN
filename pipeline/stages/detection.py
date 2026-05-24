@@ -125,6 +125,10 @@ class FaceDetectionStage:
             x1, y1, x2, y2 = [int(round(value)) for value in box]
             if x2 <= x1 or y2 <= y1:
                 continue
+            face_crop = frame_bgr[y1:y2, x1:x2]
+            ok, encoded_face = cv2.imencode(".jpg", face_crop)
+            if not ok:
+                continue
             crop_x1, crop_y1, crop_x2, crop_y2 = expand_box(
                 [x1, y1, x2, y2],
                 width,
@@ -132,15 +136,18 @@ class FaceDetectionStage:
                 self.crop_margin_x,
                 self.crop_margin_y,
             )
-            crop = frame_bgr[crop_y1:crop_y2, crop_x1:crop_x2]
-            ok, encoded = cv2.imencode(".jpg", crop)
+            quality_crop = frame_bgr[crop_y1:crop_y2, crop_x1:crop_x2]
+            ok, encoded_quality = cv2.imencode(".jpg", quality_crop)
             if not ok:
                 continue
             detections.append(
                 FaceDetection(
-                    bbox=[crop_x1, crop_y1, crop_x2, crop_y2],
+                    bbox=[x1, y1, x2, y2],
                     score=float(score),
-                    crop_jpeg_b64=base64.b64encode(encoded.tobytes()).decode("ascii"),
+                    crop_jpeg_b64=base64.b64encode(encoded_face.tobytes()).decode("ascii"),
+                    crop_bbox=[crop_x1, crop_y1, crop_x2, crop_y2],
+                    quality_crop_jpeg_b64=base64.b64encode(encoded_quality.tobytes()).decode("ascii"),
+                    quality_bbox=[crop_x1, crop_y1, crop_x2, crop_y2],
                 )
             )
         return detections

@@ -41,7 +41,7 @@ class CameraConfig:
     source: str = "0"
     enabled: bool = True
     rotate: int = 0
-    sample_interval_ms: int = 500
+    sample_interval_ms: int = 100
     jpeg_quality: int = 85
     reconnect_delay_sec: float = 3.0
 
