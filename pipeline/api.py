@@ -9,11 +9,14 @@ import cv2
 import numpy as np
 import yaml
 from flask import Flask, jsonify, render_template_string, request
+from werkzeug.utils import secure_filename
 
 from .config import load_pipeline_config
-from .enroll_qdrant_identity_store import enroll_dataset
+from .enroll_qdrant_identity_store import SUPPORTED_EXTS, enroll_dataset
 from .orchestrator import RecognitionOrchestrator
 from .response import ResponseWriter
+
+DEFAULT_UPLOAD_DATASET_ROOT = "FacenetDataset"
 
 
 INDEX_HTML = """
@@ -586,6 +589,11 @@ ADMIN_HTML = """
       box-shadow: inset 0 -1px 0 var(--line);
     }
     .message { min-height: 20px; color: var(--muted); margin-top: 8px; }
+    .form-block {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+    }
     @media (max-width: 980px) {
       header { align-items: flex-start; flex-direction: column; }
       .chips { justify-content: flex-start; }
@@ -675,6 +683,13 @@ ADMIN_HTML = """
           <h2>Identities</h2>
           <button class="secondary" onclick="refreshIdentities()">Refresh</button>
         </div>
+        <form id="upload-enroll-form" class="grid-form form-block" enctype="multipart/form-data">
+          <label>Employee ID<input name="employee_id" placeholder="employee-01" required></label>
+          <label>Images<input name="images" type="file" accept="image/*" multiple required></label>
+          <label>Dataset Root<input name="dataset_root" value="FacenetDataset"></label>
+          <label>Min Quality<input name="min_quality" type="number" step="0.01" placeholder="0.4"></label>
+          <div class="actions" style="grid-column:1/-1"><button type="submit">Upload & Enroll</button></div>
+        </form>
         <form id="enroll-form" class="grid-form">
           <label style="grid-column:1/-1">Dataset Root<input name="dataset_root" placeholder="FacenetDataset" required></label>
           <label>Min Quality<input name="min_quality" type="number" step="0.01" placeholder="0.4"></label>
@@ -913,6 +928,21 @@ ADMIN_HTML = """
         $("identity-message").textContent = error.message;
       }
     });
+    $("upload-enroll-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const body = new FormData(form);
+      $("identity-message").textContent = "Upload running";
+      try {
+        const data = await api("/identities/enroll/upload", {method: "POST", body});
+        $("identity-message").textContent = `Upload saved ${data.saved_images || 0} image(s), enroll started: ${data.job?.id || "-"}`;
+        form.reset();
+        form.elements.dataset_root.value = "FacenetDataset";
+        refreshIdentities(); refreshSystem();
+      } catch (error) {
+        $("identity-message").textContent = error.message;
+      }
+    });
     $("settings-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       try {
@@ -937,6 +967,7 @@ ADMIN_HTML = """
 def create_app() -> Flask:
     cfg = load_pipeline_config()
     app = Flask(__name__)
+    app.config["MAX_CONTENT_LENGTH"] = 256 * 1024 * 1024
     responses = ResponseWriter(
         cfg.redis.url,
         cfg.redis.result_queue,
@@ -945,6 +976,48 @@ def create_app() -> Flask:
     )
     orchestrator = RecognitionOrchestrator(cfg)
     enroll_jobs: dict[str, dict] = {}
+
+    def upload_dataset_root(raw_root: str | None) -> Path:
+        root_value = str(raw_root or DEFAULT_UPLOAD_DATASET_ROOT).strip() or DEFAULT_UPLOAD_DATASET_ROOT
+        root = Path(root_value)
+        root = root.resolve() if root.is_absolute() else (Path.cwd() / root).resolve()
+        workspace = Path.cwd().resolve()
+        if not root.is_relative_to(workspace):
+            raise ValueError("dataset_root must be inside the project workspace")
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+
+    def employee_upload_dir(root: Path, employee_id: str) -> Path:
+        employee_id = str(employee_id or "").strip()
+        if not employee_id:
+            raise ValueError("employee_id is required")
+        if employee_id in {".", ".."} or "/" in employee_id or "\\" in employee_id:
+            raise ValueError("employee_id must be a single folder name")
+        target = (root / employee_id).resolve()
+        if not target.is_relative_to(root):
+            raise ValueError("employee_id points outside dataset_root")
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    def save_upload_images(dataset_root: Path, employee_id: str, files) -> list[Path]:
+        employee_dir = employee_upload_dir(dataset_root, employee_id)
+        saved_paths: list[Path] = []
+        for upload in files:
+            original_name = upload.filename or ""
+            if not original_name:
+                continue
+            suffix = Path(original_name).suffix.lower()
+            if suffix not in SUPPORTED_EXTS:
+                raise ValueError(f"Unsupported image extension: {original_name}")
+            filename = secure_filename(original_name)
+            if not filename:
+                filename = f"image{suffix}"
+            output_path = employee_dir / f"{uuid.uuid4().hex}_{filename}"
+            upload.save(output_path)
+            saved_paths.append(output_path)
+        if not saved_paths:
+            raise ValueError("at least one image file is required")
+        return saved_paths
 
     def db_connect():
         import psycopg
@@ -1404,6 +1477,46 @@ def create_app() -> Flask:
 
         threading.Thread(target=run_job, name=f"enroll-{job_id}", daemon=True).start()
         return jsonify({"status": "ok", "job": enroll_jobs[job_id]}), 202
+
+    @app.post("/identities/enroll/upload")
+    def upload_and_enroll_identity():
+        employee_id = str(request.form.get("employee_id") or "").strip()
+        min_quality_raw = request.form.get("min_quality")
+        try:
+            min_quality = None if min_quality_raw in {None, ""} else float(min_quality_raw)
+            dataset_root = upload_dataset_root(request.form.get("dataset_root"))
+            saved_paths = save_upload_images(dataset_root, employee_id, request.files.getlist("images"))
+        except Exception as exc:
+            return jsonify({"status": "error", "error": str(exc)}), 400
+
+        job_id = str(uuid.uuid4())
+        enroll_jobs[job_id] = {
+            "id": job_id,
+            "status": "running",
+            "dataset_root": dataset_root.as_posix(),
+            "employee_id": employee_id,
+            "saved_images": len(saved_paths),
+            "error": None,
+        }
+
+        def run_job() -> None:
+            try:
+                enroll_dataset("config.yaml", dataset_root.as_posix(), min_quality, employee_ids=[employee_id])
+            except Exception as exc:
+                enroll_jobs[job_id]["status"] = "error"
+                enroll_jobs[job_id]["error"] = str(exc)
+            else:
+                enroll_jobs[job_id]["status"] = "complete"
+
+        threading.Thread(target=run_job, name=f"enroll-upload-{job_id}", daemon=True).start()
+        return jsonify(
+            {
+                "status": "ok",
+                "saved_images": len(saved_paths),
+                "paths": [path.relative_to(Path.cwd()).as_posix() for path in saved_paths],
+                "job": enroll_jobs[job_id],
+            }
+        ), 202
 
     @app.get("/identities/enroll/<job_id>")
     def enroll_job(job_id: str):

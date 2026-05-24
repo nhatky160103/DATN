@@ -60,18 +60,27 @@ class FaceTrackingStage:
             bbox = [int(round(value)) for value in track_bbox.tolist()]
             score = float(track.score)
             crop_jpeg_b64 = ""
+            quality_crop_jpeg_b64 = None
+            crop_bbox = None
+            quality_bbox = None
             if det_boxes:
                 best_index = int(np.argmax([_iou(track_bbox, det_box) for det_box in det_boxes]))
                 detection = detections[best_index]
                 bbox = detection.bbox
                 score = float(detection.score)
                 crop_jpeg_b64 = detection.crop_jpeg_b64
+                crop_bbox = detection.crop_bbox
+                quality_crop_jpeg_b64 = detection.quality_crop_jpeg_b64
+                quality_bbox = detection.quality_bbox
             output.append(
                 TrackedFace(
                     track_id=int(track.track_id),
                     bbox=bbox,
                     score=score,
                     crop_jpeg_b64=crop_jpeg_b64,
+                    crop_bbox=crop_bbox,
+                    quality_crop_jpeg_b64=quality_crop_jpeg_b64,
+                    quality_bbox=quality_bbox,
                 )
             )
 

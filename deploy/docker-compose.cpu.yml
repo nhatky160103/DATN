@@ -92,6 +92,7 @@ services:
       BUCKET_NAME: ${BUCKET_NAME:-Hust}
       REDIS_CONSUMER_GROUP: attendance-workers
       REDIS_CONSUMER_NAME: worker-01
+      SAVE_QUALITY_DEBUG: ${SAVE_QUALITY_DEBUG:-}
     volumes:
       - ..:/app
 

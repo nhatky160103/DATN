@@ -38,7 +38,12 @@ def _decode_crop(crop_bytes: bytes) -> np.ndarray | None:
     return cv2.imdecode(np.frombuffer(crop_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
 
 
-def enroll_dataset(config_path: str, dataset_root: str, min_quality: float | None = None) -> None:
+def enroll_dataset(
+    config_path: str,
+    dataset_root: str,
+    min_quality: float | None = None,
+    employee_ids: list[str] | set[str] | tuple[str, ...] | None = None,
+) -> None:
     cfg = load_pipeline_config(config_path)
     root = Path(dataset_root)
     if not root.exists():
@@ -68,8 +73,15 @@ def enroll_dataset(config_path: str, dataset_root: str, min_quality: float | Non
         )
     )
 
-    employee_dirs = [path for path in sorted(root.iterdir()) if path.is_dir()]
+    wanted_employee_ids = {str(item) for item in employee_ids} if employee_ids else None
+    employee_dirs = [
+        path
+        for path in sorted(root.iterdir())
+        if path.is_dir() and (wanted_employee_ids is None or path.name in wanted_employee_ids)
+    ]
     if not employee_dirs:
+        if wanted_employee_ids:
+            raise ValueError(f"No matching employee folders found in {root}: {sorted(wanted_employee_ids)}")
         raise ValueError(f"No employee folders found in {root}")
 
     points = []
@@ -92,13 +104,19 @@ def enroll_dataset(config_path: str, dataset_root: str, min_quality: float | Non
                 continue
 
             detection = max(detections, key=lambda item: item.score)
+            quality_face = _decode_crop(detection.quality_crop_bytes())
+            if quality_face is None:
+                print(f"Skipped invalid quality crop: {image_path}")
+                skipped += 1
+                continue
+
             face = _decode_crop(detection.crop_bytes())
             if face is None:
                 print(f"Skipped invalid crop: {image_path}")
                 skipped += 1
                 continue
 
-            accepted, quality_score = quality.accept(face)
+            accepted, quality_score = quality.accept(quality_face)
             if not accepted:
                 print(f"Skipped low-quality image: {image_path} quality={quality_score:.6f}")
                 skipped += 1
@@ -120,6 +138,7 @@ def enroll_dataset(config_path: str, dataset_root: str, min_quality: float | Non
                         "det_score": float(detection.score),
                         "quality_score": float(quality_score),
                         "bbox": detection.bbox,
+                        "quality_bbox": detection.quality_bbox,
                         "model_name": cfg.triton.arcface_model,
                         "model_version": "arcface",
                         "active": True,
